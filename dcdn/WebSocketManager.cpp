@@ -16,7 +16,7 @@ WebSocketManager::WebSocketManager(MainManager* man):
 
 void WebSocketManager::run()
 {
-    spdlog::info("WebSocket running");
+    logInfo << "WebSocket running";
     auto connectTime = std::chrono::steady_clock::now();
     std::atomic<bool> closed = true;
     while (true) {
@@ -48,7 +48,7 @@ void WebSocketManager::run()
             break;
         }
     }
-    spdlog::info("WebSocket exit");
+    logInfo << "WebSocket exit";
 }
 
 void WebSocketManager::connect()
@@ -58,15 +58,15 @@ void WebSocketManager::connect()
         config.disableTlsVerification = true;
         auto ws = std::make_shared<rtc::WebSocket>(std::move(config));
         ws->onOpen([&]() {
-            spdlog::info("websocket opened");
+            logInfo << "websocket opened";
             mStatus = Connected;
         });
         ws->onError([&](std::string error) {
-            spdlog::info("websocket error: {}", error);
+            logInfo << "websocket error: " << error;
             mStatus = Closed;
         });
         ws->onClosed([&]() {
-            spdlog::info("websocket closed");
+            logInfo << "websocket closed";
             mStatus = Closed;
         });
         ws->onMessage([&](std::variant<rtc::binary, std::string> message) {
@@ -80,22 +80,22 @@ void WebSocketManager::connect()
                     mMan->PostWebSocketMsg(std::make_shared<json>(std::move(msg)));
                 }
             } catch (std::exception& excp) {
-                spdlog::warn("websocket parse msg exception: {}", excp.what());
+                logWarn << "websocket parse msg exception: " << excp.what();
             } catch (...) {
-                spdlog::warn("websocket parse msg unknown exception");
+                logWarn << "websocket parse msg unknown exception";
             }
         });
         mStatus = Connecting;
         mWebSkt = ws;
         std::string url = mMan->Cfg().ApiRootUrl();
         url += "/ws";
-        spdlog::info("websocket try to connect: {}", url);
+        logInfo << "websocket try to connect: " << url;
         mWebSkt->open(url);
     } catch (std::exception& excp) {
-        spdlog::warn("websocket exception: {}", excp.what());
+        logWarn << "websocket exception: " << excp.what();
         mStatus = Closed;
     } catch (...) {
-        spdlog::warn("websocket unknown exception");
+        logWarn << "websocket unknown exception";
         mStatus = Closed;
     }
 }

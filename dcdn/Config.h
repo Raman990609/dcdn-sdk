@@ -6,9 +6,6 @@
 #include <mutex>
 #include <unordered_map>
 #include <sqlite3.h>
-#include <spdlog/spdlog.h>
-//#include <plog/Log.h>
-//#include <plog/Initializers/RollingFileInitializer.h>
 #include "common/Config.h"
 #include "common/Logger.h"
 

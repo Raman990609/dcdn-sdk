@@ -9,7 +9,7 @@
 
 #define logDebug PLOG_DEBUG_(DCDN_LOGGER_ID)
 #define logInfo PLOG_INFO_(DCDN_LOGGER_ID)
-#define logWarn PLOG_WARN_(DCDN_LOGGER_ID)
+#define logWarn PLOG_WARNING_(DCDN_LOGGER_ID)
 #define logError PLOG_ERROR_(DCDN_LOGGER_ID)
 
 #endif

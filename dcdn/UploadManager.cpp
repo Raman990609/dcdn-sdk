@@ -10,11 +10,11 @@ UploadManager::UploadManager(MainManager* man):
 
 void UploadManager::run()
 {
-    spdlog::info("Upload running");
+    logInfo << "Upload running";
     while (true) {
         std::this_thread::sleep_for(std::chrono::seconds(1));
     }
-    spdlog::info("Upload exit");
+    logInfo << "Upload exit";
 }
 
 NS_END

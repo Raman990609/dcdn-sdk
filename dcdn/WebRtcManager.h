@@ -8,7 +8,6 @@
 #include <atomic>
 #include <mutex>
 #include <condition_variable>
-#include <spdlog/spdlog.h>
 #include <rtc/rtc.hpp>
 #include <nlohmann/json.hpp>
 #include "common/Config.h"

@@ -8,7 +8,6 @@
 #include <atomic>
 #include <nlohmann/json.hpp>
 #include <sqlite3.h>
-#include <spdlog/spdlog.h>
 #include "common/Config.h"
 #include "common/Logger.h"
 #include "util/HttpClient.h"

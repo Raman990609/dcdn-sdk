@@ -9,7 +9,6 @@
 #include <list>
 #include <rtc/rtc.hpp>
 #include <nlohmann/json.hpp>
-#include <spdlog/spdlog.h>
 #include "common/Config.h"
 #include "BaseManager.h"
 

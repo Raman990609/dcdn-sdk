@@ -1,5 +1,4 @@
 #include <iostream>
-#include <spdlog/spdlog.h>
 #include "MainManager.h"
 
 int main(int argc, char* argv[])
@@ -8,11 +7,11 @@ int main(int argc, char* argv[])
     opt.WorkDir = "data";
     int ret = dcdn::MainManager::Init(opt);
     if (ret != 1) {
-        spdlog::error("Init MainManager fail");
+        logError << "Init MainManager fail";
         return 1;
     }
     dcdn::MainManager* m = dcdn::MainManager::Singlet();
-    spdlog::info("Start MainManager");
+    logInfo << "Start MainManager";
     m->Start();
     while (true) {
         std::this_thread::sleep_for(std::chrono::seconds(1));

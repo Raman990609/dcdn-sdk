@@ -18,7 +18,6 @@ int MainManager::Init(const MainManagerOption& opt)
     logFile.append("dcdn.log");
     plog::init<DCDN_LOGGER_ID>(plog::debug, logFile.c_str());
     logInfo<< "MainManager init";
-    spdlog::set_level(spdlog::level::debug);
     rtc::InitLogger(rtc::LogLevel::Debug);
     MainManager* n = nullptr;
     MainManager* m = new MainManager();
@@ -117,19 +116,18 @@ void MainManager::login()
             std::string token = data["token"];
             mCfg.SetToken(token);
         } else {
-            spdlog::warn("login request fail code: {}", code);
+            logWarn << "login request fail code: " << code;
         }
     } catch (std::exception& excp) {
-        spdlog::warn("login exception: {}", excp.what());
+        logWarn << "login exception: " << excp.what();
     } catch (...) {
-        spdlog::warn("login unknown exception");
+        logWarn << "login unknown exception";
     }
 }
 
 void MainManager::run()
 {
-    //PLOGI << "MainManager running";
-    spdlog::info("MainManager running");
+    logInfo << "MainManager running";
     mCfg.LoadFromDB(mCfgDB);
     login();
     mWebRtc->Start();
@@ -140,7 +138,7 @@ void MainManager::run()
     while (true) {
         std::this_thread::sleep_for(std::chrono::seconds(1));
     }
-    spdlog::info("MainManager exit");
+    logInfo << "MainManager exit";
 }
 
 NS_END

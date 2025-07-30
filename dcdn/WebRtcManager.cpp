@@ -13,12 +13,12 @@ WebRtcManager::WebRtcManager(MainManager* man):
 
 void WebRtcManager::run()
 {
-    spdlog::info("WebRtc running");
+    logInfo << "WebRtc running";
     while (true) {
         runGather();
         std::this_thread::sleep_for(std::chrono::seconds(1));
     }
-    spdlog::info("WebRtc exit");
+    logInfo << "WebRtc exit";
 }
 
 void WebRtcManager::runGather()
@@ -74,9 +74,9 @@ void WebRtcManager::gather()
         auto dc = pc->createDataChannel("detect");//start gathering
         mPc = pc;
     } catch (std::exception& excp) {
-        spdlog::warn("webrtc gather excpetion: {}", excp.what());
+        logWarn << "webrtc gather excpetion: " << excp.what();
     } catch (...) {
-        spdlog::warn("webrtc gather unknown excpetion");
+        logWarn << "webrtc gather unknown excpetion";
     }
 
 }
@@ -88,14 +88,13 @@ void WebRtcManager::gatherDone()
         if (dsOpt) {
             std::string sdp(dsOpt.value());
             mSdp = sdp;
-            spdlog::info("LocalSDP: {}", sdp);
             //TODO: 解析出candidates并保存，合并已保存的candidates到sdp中，因为有时stun server无法到达从而会导致本次sdp缺失外网candidate
         }
         report();
     } catch (std::exception& excp) {
-        spdlog::warn("webrtc gatherDone exception: {}", excp.what());
+        logWarn << "webrtc gatherDone exception: " << excp.what();
     } catch (...) {
-        spdlog::warn("webrtc gatherDone unknown exception");
+        logWarn << "webrtc gatherDone unknown exception";
     }
 }
 
@@ -106,9 +105,9 @@ void WebRtcManager::report()
         msg["description"] = mSdp;
         mMan->ApiPost(mClient, "/api/v1/report_net_info", msg, nullptr);
     } catch (std::exception& excp) {
-        spdlog::warn("webrtc report exception: {}", excp.what());
+        logWarn << "webrtc report exception: " << excp.what();
     } catch (...) {
-        spdlog::warn("webrtc report unknown exception");
+        logWarn << "webrtc report unknown exception";
     }
 }
 

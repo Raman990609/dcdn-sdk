@@ -12,11 +12,11 @@ DownloadManager::DownloadManager(MainManager* man):
 
 void DownloadManager::run()
 {
-    spdlog::info("Download running");
+    logInfo << "Download running";
     while (true) {
         std::this_thread::sleep_for(std::chrono::seconds(1));
     }
-    spdlog::info("Download exit");
+    logInfo << "Download exit";
 }
 
 NS_END

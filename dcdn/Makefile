@@ -3,7 +3,7 @@ include ../config.mk
 INCFLAGS = -I.. -I../deps/include 
 
 LIBFLAGS = \
-		   -L../deps/lib -lcurl -ldatachannel -lusrsctp -ljuice -lsqlite3 -lspdlog -lz \
+		   -L../deps/lib -lcurl -ldatachannel -lusrsctp -ljuice -lsqlite3 -lz \
 
 PLT ?= $(shell uname)
 ifeq ($(PLT), Darwin)
