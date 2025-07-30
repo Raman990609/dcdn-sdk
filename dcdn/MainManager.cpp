@@ -1,9 +1,12 @@
 #include <filesystem>
 #include <spdlog/spdlog.h>
+#include <plog/Initializers/RollingFileInitializer.h>
 #include "MainManager.h"
 #include "WebSocketManager.h"
 #include "WebRtcManager.h"
 #include "FileManager.h"
+#include "UploadManager.h"
+#include "DownloadManager.h"
 
 NS_BEGIN(dcdn)
 
@@ -11,6 +14,12 @@ std::atomic<MainManager*> MainManager::singlet = nullptr;
 
 int MainManager::Init(const MainManagerOption& opt)
 {
+    std::filesystem::path logFile(opt.WorkDir);
+    logFile.append("dcdn.log");
+    plog::init<DCDN_LOGGER_ID>(plog::debug, logFile.c_str());
+    logInfo<< "MainManager init";
+    spdlog::set_level(spdlog::level::debug);
+    rtc::InitLogger(rtc::LogLevel::Debug);
     MainManager* n = nullptr;
     MainManager* m = new MainManager();
     if (!singlet.compare_exchange_strong(n, m)) {
@@ -20,11 +29,14 @@ int MainManager::Init(const MainManagerOption& opt)
     return m->init(opt);
 }
 
-MainManager::MainManager()
+MainManager::MainManager():
+    BaseManager(this)
 {
     mWebSkt = std::make_shared<WebSocketManager>(this);
     mWebRtc = std::make_shared<WebRtcManager>(this);
     mFileMgr = std::make_shared<FileManager>(this);
+    mUploadMgr = std::make_shared<UploadManager>(this);
+    mDownloadMgr = std::make_shared<DownloadManager>(this);
 }
 
 int MainManager::init(const MainManagerOption& opt)
@@ -52,14 +64,6 @@ MainManager::~MainManager()
     if (mCfgDB) {
         sqlite3_close(mCfgDB);
     }
-}
-
-void MainManager::Start()
-{
-    mThread = std::make_shared<std::thread>([&](){
-        run();
-    });
-    mThread->detach();
 }
 
 void MainManager::PostWebSocketMsg(std::shared_ptr<json> msg)
@@ -124,12 +128,15 @@ void MainManager::login()
 
 void MainManager::run()
 {
+    //PLOGI << "MainManager running";
     spdlog::info("MainManager running");
     mCfg.LoadFromDB(mCfgDB);
     login();
     mWebRtc->Start();
     mWebSkt->Start();
     mFileMgr->Start();
+    mUploadMgr->Start();
+    mDownloadMgr->Start();
     while (true) {
         std::this_thread::sleep_for(std::chrono::seconds(1));
     }

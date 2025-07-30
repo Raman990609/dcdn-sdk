@@ -7,6 +7,8 @@ NS_BEGIN(dcdn)
 Config::Config()
 {
     mApiRootUrl = ApiRootUrl;
+    mStunServers.emplace_back("39.106.141.70:8347");
+    mStunServers.emplace_back("stun1.l.google.com:3478");
 }
 
 int Config::CreateTable(sqlite3* db)

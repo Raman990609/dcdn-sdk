@@ -3,19 +3,17 @@
 
 #include <thread>
 #include "common/Config.h"
+#include "BaseManager.h"
 
 NS_BEGIN(dcdn)
 
-class MainManager;
-class FileManager
+class FileManager: public BaseManager
 {
 public:
     FileManager(MainManager* man);
-    void Start();
 private:
     void run();
 private:
-    MainManager* mMan;
 };
 
 

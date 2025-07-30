@@ -4,7 +4,6 @@
 
 int main(int argc, char* argv[])
 {
-    spdlog::set_level(spdlog::level::debug);
     dcdn::MainManagerOption opt;
     opt.WorkDir = "data";
     int ret = dcdn::MainManager::Init(opt);

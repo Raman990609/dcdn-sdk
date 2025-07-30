@@ -11,18 +11,16 @@
 #include <nlohmann/json.hpp>
 #include <spdlog/spdlog.h>
 #include "common/Config.h"
+#include "BaseManager.h"
 
 NS_BEGIN(dcdn)
 
-class MainManager;
-
-class WebSocketManager
+class WebSocketManager: public BaseManager
 {
 public:
     using json = nlohmann::json;
 public:
     WebSocketManager(MainManager* man);
-    void Start();
     unsigned long PostMsg(std::shared_ptr<json> msg);
 private:
     void run();
@@ -35,8 +33,6 @@ private:
         Closed,
     };
 private:
-    MainManager* mMan;
-    std::shared_ptr<std::thread> mThread;
     std::mutex mMtx;
     std::condition_variable mCv;
     std::atomic<int> mStatus;

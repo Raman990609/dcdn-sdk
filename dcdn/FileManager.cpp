@@ -4,16 +4,8 @@
 NS_BEGIN(dcdn)
 
 FileManager::FileManager(MainManager* man):
-    mMan(man)
+    BaseManager(man)
 {
-}
-
-void FileManager::Start()
-{
-    std::thread t([&]() {
-        run();
-    });
-    t.detach();
 }
 
 void FileManager::run()

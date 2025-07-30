@@ -7,7 +7,10 @@
 #include <unordered_map>
 #include <sqlite3.h>
 #include <spdlog/spdlog.h>
+//#include <plog/Log.h>
+//#include <plog/Initializers/RollingFileInitializer.h>
 #include "common/Config.h"
+#include "common/Logger.h"
 
 
 NS_BEGIN(dcdn)
@@ -60,6 +63,12 @@ public:
             mKv["token"] = token;
         }
     }
+    unsigned WebRtcGatherPeriod() const
+    {
+        std::unique_lock<std::mutex> lck(mMtx);
+        unsigned val = mWebRtcGatherPeriod;
+        return val;
+    }
 public:
     static int CreateTable(sqlite3* db);
 private:
@@ -71,6 +80,8 @@ private:
     std::string mPeerId;
     std::string mToken;
     std::vector<std::string> mStunServers;
+
+    unsigned mWebRtcGatherPeriod = 60; //seconds
 
     std::unordered_map<std::string, std::string> mKv;
 };

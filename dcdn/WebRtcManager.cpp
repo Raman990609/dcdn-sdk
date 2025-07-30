@@ -1,20 +1,14 @@
 #include "WebRtcManager.h"
 #include "MainManager.h"
+#include <chrono>
 
 NS_BEGIN(dcdn)
 
 WebRtcManager::WebRtcManager(MainManager* man):
-    mMan(man)
+    BaseManager(man)
 {
     mCert = generate_ecdsa_certificate();
-}
-
-void WebRtcManager::Start()
-{
-    mThread = std::make_shared<std::thread>([&](){
-        run();
-    });
-    mThread->detach();
+    mLastGatherTime = std::chrono::steady_clock::now() - std::chrono::hours(24);
 }
 
 void WebRtcManager::run()
@@ -31,11 +25,19 @@ void WebRtcManager::runGather()
 {
     switch (mGatherStatus) {
     case GatherIdle:
-        gather();
+        {
+            auto now = std::chrono::steady_clock::now();
+            unsigned period = mMan->Cfg().WebRtcGatherPeriod();
+            if (mLastGatherTime + std::chrono::seconds(period) <= now) {
+                gather();
+            }
+        }
         break;
     case GatherRunning:
         break;
     case GatherDone:
+        mGatherStatus = GatherIdle;
+        mLastGatherTime = std::chrono::steady_clock::now();
         gatherDone();
         break;
     }
@@ -86,9 +88,14 @@ void WebRtcManager::gatherDone()
         if (dsOpt) {
             std::string sdp(dsOpt.value());
             mSdp = sdp;
+            spdlog::info("LocalSDP: {}", sdp);
+            //TODO: 解析出candidates并保存，合并已保存的candidates到sdp中，因为有时stun server无法到达从而会导致本次sdp缺失外网candidate
         }
+        report();
     } catch (std::exception& excp) {
+        spdlog::warn("webrtc gatherDone exception: {}", excp.what());
     } catch (...) {
+        spdlog::warn("webrtc gatherDone unknown exception");
     }
 }
 
@@ -99,7 +106,9 @@ void WebRtcManager::report()
         msg["description"] = mSdp;
         mMan->ApiPost(mClient, "/api/v1/report_net_info", msg, nullptr);
     } catch (std::exception& excp) {
+        spdlog::warn("webrtc report exception: {}", excp.what());
     } catch (...) {
+        spdlog::warn("webrtc report unknown exception");
     }
 }
 

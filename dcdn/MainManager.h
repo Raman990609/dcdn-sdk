@@ -10,14 +10,12 @@
 #include <sqlite3.h>
 #include <spdlog/spdlog.h>
 #include "common/Config.h"
+#include "common/Logger.h"
 #include "util/HttpClient.h"
 #include "Config.h"
+#include "BaseManager.h"
 
 NS_BEGIN(dcdn)
-
-class WebSocketManager;
-class WebRtcManager;
-class FileManager;
 
 struct MainManagerOption
 {
@@ -26,12 +24,11 @@ struct MainManagerOption
     std::string ApiKey;
 };
 
-class MainManager
+class MainManager: public BaseManager
 {
 public:
     using json = nlohmann::json;
 public:
-    void Start();
     void PostWebSocketMsg(std::shared_ptr<json> msg);
     const Config& Cfg() const
     {
@@ -60,7 +57,6 @@ private:
     void login();
     void updateConfigToDB();
 private:
-    std::shared_ptr<std::thread> mThread;
     std::mutex mMtx;
     std::condition_variable mCv;
 
@@ -69,9 +65,11 @@ private:
     sqlite3* mCfgDB = nullptr;
     dcdn::util::HttpClient mClient;
 
-    std::shared_ptr<WebSocketManager> mWebSkt;
-    std::shared_ptr<WebRtcManager> mWebRtc;
-    std::shared_ptr<FileManager> mFileMgr;
+    std::shared_ptr<BaseManager> mWebSkt;
+    std::shared_ptr<BaseManager> mWebRtc;
+    std::shared_ptr<BaseManager> mFileMgr;
+    std::shared_ptr<BaseManager> mUploadMgr;
+    std::shared_ptr<BaseManager> mDownloadMgr;
 };
 
 NS_END

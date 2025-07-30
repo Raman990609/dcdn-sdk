@@ -24,6 +24,8 @@ libdcdnObjs = \
 			   WebSocketManager.o \
 			   WebRtcManager.o \
 			   FileManager.o \
+			   UploadManager.o \
+			   DownloadManager.o \
 			   MainManager.o \
 
 

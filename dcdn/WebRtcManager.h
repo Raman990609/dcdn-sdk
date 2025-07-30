@@ -4,6 +4,7 @@
 #include <string>
 #include <memory>
 #include <thread>
+#include <chrono>
 #include <atomic>
 #include <mutex>
 #include <condition_variable>
@@ -13,18 +14,16 @@
 #include "common/Config.h"
 #include "util/HttpClient.h"
 #include "Cert.h"
+#include "BaseManager.h"
 
 NS_BEGIN(dcdn)
 
-class MainManager;
-
-class WebRtcManager
+class WebRtcManager: public BaseManager
 {
 public:
     using json = nlohmann::json;
 public:
     WebRtcManager(MainManager* man);
-    void Start();
 private:
     void run();
     void runGather();
@@ -38,13 +37,12 @@ private:
         GatherDone,
     };
 private:
-    MainManager* mMan;
-    std::shared_ptr<std::thread> mThread;
     std::mutex mMtx;
     std::condition_variable mCv;
 
     dcdn::util::HttpClient mClient;
     CertificatePair mCert;
+    std::chrono::time_point<std::chrono::steady_clock> mLastGatherTime;
     std::atomic<GatherStatus> mGatherStatus = GatherIdle;
     std::shared_ptr<rtc::PeerConnection> mPc;
     std::string mSdp;

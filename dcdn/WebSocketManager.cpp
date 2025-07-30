@@ -10,31 +10,23 @@ using json = nlohmann::json;
 NS_BEGIN(dcdn)
 
 WebSocketManager::WebSocketManager(MainManager* man):
-    mMan(man)
+    BaseManager(man)
 {
-}
-
-void WebSocketManager::Start()
-{
-    mThread = std::make_shared<std::thread>([&](){
-        run();
-    });
-    mThread->detach();
 }
 
 void WebSocketManager::run()
 {
     spdlog::info("WebSocket running");
-    auto connectTime = std::chrono::system_clock::now();
+    auto connectTime = std::chrono::steady_clock::now();
     std::atomic<bool> closed = true;
     while (true) {
         switch (mStatus) {
         case Idle:
-            connectTime = std::chrono::system_clock::now();
+            connectTime = std::chrono::steady_clock::now();
             connect();
             break;
         case Connecting:
-            if (std::chrono::system_clock::now() - connectTime >= std::chrono::seconds(30)) {
+            if (std::chrono::steady_clock::now() - connectTime >= std::chrono::seconds(30)) {
                 mStatus = Idle;
             } else {
                 std::this_thread::sleep_for(std::chrono::seconds(1));
