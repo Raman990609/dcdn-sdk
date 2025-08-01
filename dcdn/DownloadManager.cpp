@@ -8,15 +8,20 @@ NS_BEGIN(dcdn)
 DownloadManager::DownloadManager(MainManager* man):
     BaseManager(man)
 {
+    registerHandler(EventType::DeployMsg, &DownloadManager::handleDeployMsgEvent);
 }
 
 void DownloadManager::run()
 {
     logInfo << "Download running";
     while (true) {
-        std::this_thread::sleep_for(std::chrono::seconds(1));
+        waitAllEvents(std::chrono::milliseconds(1000));
     }
     logInfo << "Download exit";
+}
+
+void DownloadManager::handleDeployMsgEvent(std::shared_ptr<Event> evt)
+{
 }
 
 NS_END

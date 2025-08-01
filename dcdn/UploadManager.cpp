@@ -6,15 +6,20 @@ NS_BEGIN(dcdn)
 UploadManager::UploadManager(MainManager* man):
     BaseManager(man)
 {
+    registerHandler(EventType::UploadMsg, &UploadManager::handleUploadMsgEvent);
 }
 
 void UploadManager::run()
 {
     logInfo << "Upload running";
     while (true) {
-        std::this_thread::sleep_for(std::chrono::seconds(1));
+        waitAllEvents(std::chrono::milliseconds(1000));
     }
     logInfo << "Upload exit";
+}
+
+void UploadManager::handleUploadMsgEvent(std::shared_ptr<Event> evt)
+{
 }
 
 NS_END

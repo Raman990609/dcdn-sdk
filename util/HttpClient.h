@@ -3,7 +3,7 @@
 
 #include <string>
 #include <unordered_map>
-#include "common/Config.h"
+#include "common/Common.h"
 #include <curl/curl.h>
 
 NS_BEGIN(dcdn)

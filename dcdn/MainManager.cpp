@@ -1,5 +1,4 @@
 #include <filesystem>
-#include <spdlog/spdlog.h>
 #include <plog/Initializers/RollingFileInitializer.h>
 #include "MainManager.h"
 #include "WebSocketManager.h"
@@ -36,36 +35,27 @@ MainManager::MainManager():
     mFileMgr = std::make_shared<FileManager>(this);
     mUploadMgr = std::make_shared<UploadManager>(this);
     mDownloadMgr = std::make_shared<DownloadManager>(this);
+
+    registerHandler(EventType::UploadMsg, &MainManager::handleUploadMsgEvent);
+    registerHandler(EventType::DeployMsg, &MainManager::handleDeployMsgEvent);
 }
 
 int MainManager::init(const MainManagerOption& opt)
 {
-    std::filesystem::path cfgFile(opt.WorkDir);
-    cfgFile.append("config.db");
-    sqlite3 *db;
-    int rc = sqlite3_open(cfgFile.c_str(), &db);
-    if (rc != SQLITE_OK) {
-        sqlite3_close(db);
-        return -1;
-    }
-    rc = mCfg.CreateTable(db);
-    if (rc < 0) {
-        sqlite3_close(db);
-        return -1;
-    }
     mOpt = opt;
-    mCfgDB = db;
-    return 1;
+    int ret = mCfg.CreateTable(opt.WorkDir);
+    if (ret != ErrorCodeOk) {
+        return ret;
+    }
+    mCfg.LoadFromDB();
+    auto peerId = mCfg.PeerId();
+    if (peerId.empty()) {
+        //TODO: generate PeerId
+    }
+    return ErrorCodeOk;
 }
 
 MainManager::~MainManager()
-{
-    if (mCfgDB) {
-        sqlite3_close(mCfgDB);
-    }
-}
-
-void MainManager::PostWebSocketMsg(std::shared_ptr<json> msg)
 {
 }
 
@@ -96,15 +86,9 @@ long MainManager::ApiPost(util::HttpClient& cli, const char* uri, json& arg, jso
     return -1;
 }
 
-void MainManager::loadConfigFromDB()
-{
-    mCfg.LoadFromDB(mCfgDB);
-}
-
 void MainManager::login()
 {
     try {
-        spdlog::debug("login");
         json msg;
         msg["device_id"] = mOpt.DeviceId;
         msg["apikey"] = mOpt.ApiKey;
@@ -128,7 +112,6 @@ void MainManager::login()
 void MainManager::run()
 {
     logInfo << "MainManager running";
-    mCfg.LoadFromDB(mCfgDB);
     login();
     mWebRtc->Start();
     mWebSkt->Start();
@@ -136,9 +119,23 @@ void MainManager::run()
     mUploadMgr->Start();
     mDownloadMgr->Start();
     while (true) {
-        std::this_thread::sleep_for(std::chrono::seconds(1));
+        waitAllEvents(std::chrono::milliseconds(1000));
     }
     logInfo << "MainManager exit";
+}
+
+void MainManager::handleUploadMsgEvent(std::shared_ptr<Event> evt)
+{
+    if (mUploadMgr) {
+        static_cast<UploadManager*>(mUploadMgr.get())->PostEvent(evt);
+    }
+}
+
+void MainManager::handleDeployMsgEvent(std::shared_ptr<Event> evt)
+{
+    if (mDownloadMgr) {
+        static_cast<DownloadManager*>(mDownloadMgr.get())->PostEvent(evt);
+    }
 }
 
 NS_END

@@ -9,21 +9,23 @@
 #include <list>
 #include <rtc/rtc.hpp>
 #include <nlohmann/json.hpp>
-#include "common/Config.h"
 #include "BaseManager.h"
+#include "EventLoop.h"
 
 NS_BEGIN(dcdn)
 
-class WebSocketManager: public BaseManager
+class WebSocketManager: public BaseManager, public EventLoop<WebSocketManager>
 {
 public:
     using json = nlohmann::json;
 public:
     WebSocketManager(MainManager* man);
-    unsigned long PostMsg(std::shared_ptr<json> msg);
 private:
     void run();
     void connect();
+    void handleRecvMsg(std::variant<rtc::binary, std::string>& msg);
+    void handleAckMsgEvent(std::shared_ptr<Event> evt);
+private:
     enum WebSktStatus
     {
         Idle,

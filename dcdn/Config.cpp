@@ -1,58 +1,133 @@
+#include <filesystem>
+#include <sqlite_orm/sqlite_orm.h>
 #include "Config.h"
-
-#define ApiRootUrl "https://pcdn.capell.io"
+#include "SqliteOrmHelper.h"
 
 NS_BEGIN(dcdn)
 
+auto createConfigStorage(const std::string& filename)
+{
+    using namespace sqlite_orm;
+    return make_storage(filename,
+            make_table("configs",
+                make_column("id", &ConfigItem::id, primary_key().autoincrement()),
+                make_column("key", &ConfigItem::key, unique()),
+                make_column("val", &ConfigItem::val)
+                ));
+}
+
+class StorageRef: public StorageRefImpl<createConfigStorage>
+{
+public:
+    using Base::Base;
+};
+
 Config::Config()
 {
-    mApiRootUrl = ApiRootUrl;
+    mApiRootUrl = "https://pcdn.capell.io";
+    mWebSktUrl = "ws://pcdn.capell.io";
     mStunServers.emplace_back("39.106.141.70:8347");
     mStunServers.emplace_back("stun1.l.google.com:3478");
 }
 
-int Config::CreateTable(sqlite3* db)
+int Config::CreateTable(const std::string& workDir)
 {
-    char *errMsg = nullptr;
-    const char* sql = 
-        "CREATE TABLE IF NOT EXISTS configV1 ("
-        "id INTEGER PRIMARY KEY AUTOINCREMENT,"
-        "key TEXT NOT NULL,"
-        "val TEXT,"
-        "UNIQUE(key));";
-    int rc = sqlite3_exec(db, sql, nullptr, 0, &errMsg);
-    if (rc != SQLITE_OK) {
-        sqlite3_free(errMsg);
-        sqlite3_close(db);
-        return -1;
+    std::filesystem::path cfgFile(workDir);
+    cfgFile.append("config.db");
+    mDBFile = cfgFile;
+    if (auto db = getDB()) {
+        try {
+            db->stor.sync_schema();
+        } catch (std::exception& excp) {
+            return ErrorCodeErr;
+        } catch (...) {
+            return ErrorCodeErr;
+        }
+    } else {
+        return ErrorCodeErr;
     }
-    return 1;
+    return ErrorCodeOk;
 }
 
-int Config::loadConfigCallback(void* , int argc, char** argv, char** colName)
+std::shared_ptr<StorageRef> Config::getDB()
 {
-    const char* key = argv[0];
-    const char* val = argv[1];
-    if (strcmp(key, "peerId") == 0) {
-    } else if (strcmp(key, "token") == 0) {
+    try {
+        auto db = std::make_shared<StorageRef>(mDBFile);
+        return db;
+    } catch (std::exception& excp) {
+        logWarn << "open config.db exception: " << excp.what();
+    } catch (...) {
+        logWarn << "open config.db unknown exception";
     }
-    return 0;
+    return nullptr;
 }
 
-void Config::LoadFromDB(sqlite3* db)
+int Config::LoadFromDB()
 {
-    const char* sql = "SELECT key,val FROM configV1;";
-    char* errMsg = nullptr;
-    int rc = sqlite3_exec(db, sql, loadConfigCallback, this, &errMsg);
-    if (rc != SQLITE_OK) {
-        sqlite3_free(errMsg);
-        return;
+    try {
+        auto db = getDB();
+        if (!db) {
+            return ErrorCodeErr;
+        }
+        auto items = db->stor.get_all<ConfigItem>();
+        for (auto& item : items) {
+            if (item.key == "peerId") {
+                SetPeerId(item.val);
+            } else if (item.key == "token") {
+                SetToken(item.val);
+            }
+            mKv.erase(item.key);
+        }
+    } catch (std::exception& excp) {
+        logWarn << "load config exception: " << excp.what();
+        return ErrorCodeErr;
+    } catch (...) {
+        logWarn << "load config exception unknown";
+        return ErrorCodeErr;
     }
+    return ErrorCodeOk;
 }
 
-int Config::SaveToDB(sqlite3* db)
+int Config::SaveToDB()
 {
-    return 1;
+    do {
+        std::unique_lock lck(mMtx);
+        if (mKv.empty()) {
+            return ErrorCodeOk;
+        }
+    } while (0);
+    int ret = ErrorCodeOk;
+    std::unordered_map<std::string, std::string> kvs;
+    try {
+        auto db = getDB();
+        if (!db) {
+            return ErrorCodeErr;
+        }
+
+        mMtx.lock();
+        kvs.swap(mKv);
+        mMtx.unlock();
+
+        db->stor.transaction([&]() {
+            for (auto& it : kvs) {
+                db->stor.replace(ConfigItem{.id=0, .key=it.first, .val=it.second});
+            }
+            return true;
+        });
+    } catch (std::exception& excp) {
+        ret = ErrorCodeErr;
+    } catch (...) {
+        ret = ErrorCodeErr;
+    }
+
+    if (ret != ErrorCodeOk && !kvs.empty()) {
+        std::unique_lock lck(mMtx);
+        for (auto& it : mKv) {
+            kvs[it.first] = it.second;
+        }
+        mKv.swap(kvs);
+    }
+    return ret;
 }
 
 NS_END

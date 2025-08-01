@@ -10,7 +10,6 @@
 #include <condition_variable>
 #include <rtc/rtc.hpp>
 #include <nlohmann/json.hpp>
-#include "common/Config.h"
 #include "util/HttpClient.h"
 #include "Cert.h"
 #include "BaseManager.h"

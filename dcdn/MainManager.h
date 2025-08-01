@@ -8,11 +8,10 @@
 #include <atomic>
 #include <nlohmann/json.hpp>
 #include <sqlite3.h>
-#include "common/Config.h"
-#include "common/Logger.h"
 #include "util/HttpClient.h"
 #include "Config.h"
 #include "BaseManager.h"
+#include "EventLoop.h"
 
 NS_BEGIN(dcdn)
 
@@ -23,12 +22,15 @@ struct MainManagerOption
     std::string ApiKey;
 };
 
-class MainManager: public BaseManager
+class MainManager: public BaseManager, public EventLoop<MainManager>
 {
 public:
     using json = nlohmann::json;
 public:
-    void PostWebSocketMsg(std::shared_ptr<json> msg);
+    const MainManagerOption& Option() const
+    {
+       return mOpt;
+    }
     const Config& Cfg() const
     {
         return mCfg;
@@ -51,17 +53,16 @@ private:
     int init(const MainManagerOption& opt);
     static std::atomic<MainManager*> singlet;
 
-    void loadConfigFromDB();
-    static int loadConfigCallback(void* , int argc, char** argv, char** colName);
     void login();
-    void updateConfigToDB();
+
+    void handleUploadMsgEvent(std::shared_ptr<Event> evt);
+    void handleDeployMsgEvent(std::shared_ptr<Event> evt);
 private:
     std::mutex mMtx;
     std::condition_variable mCv;
 
     MainManagerOption mOpt;
     Config mCfg;
-    sqlite3* mCfgDB = nullptr;
     dcdn::util::HttpClient mClient;
 
     std::shared_ptr<BaseManager> mWebSkt;

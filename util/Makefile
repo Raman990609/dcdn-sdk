@@ -1,6 +1,6 @@
 include ../config.mk
 
-INCFLAGS = -I.. 
+INCFLAGS = -I.. -I../deps/include
 
 LIBFLAGS = \
 		   -L../deps/lib -lcurl -lspdlog -lz \
@@ -17,10 +17,14 @@ endif
 
 testTargets = \
 			  HttpClientTest \
+			  Secp256k1PubKeyTest \
 
 test: $(testTargets)
 
 HttpClientTest: HttpClientTest.o
+	$(CXX) -o $@ $^ $(LIBFLAGS)
+
+Secp256k1PubKeyTest: Secp256k1PubKeyTest.o
 	$(CXX) -o $@ $^ $(LIBFLAGS)
 
 %.o : %.cpp

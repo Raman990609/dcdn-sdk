@@ -1,9 +1,9 @@
 
 target = \
-		 lib/libdatachannel.a include/nlohmann \
+		 lib/libdatachannel.a include/nlohmann include/plog \
 		 lib/libcurl.a \
 		 lib/libsqlite3.a \
-		 lib/libspdlog.a \
+		 include/sqlite_orm \
 
 InstallDir=$(shell pwd)
 
@@ -22,6 +22,9 @@ lib/libdatachannel.a: src/libdatachannel-0.23.1/build/libdatachannel.a
 
 include/nlohmann: src/libdatachannel-0.23.1/deps/json/single_include/nlohmann
 	cp -r src/libdatachannel-0.23.1/deps/json/single_include/nlohmann include/
+
+include/plog: src/libdatachannel-0.23.1/deps/plog/include/plog
+	cp -r src/libdatachannel-0.23.1/deps/plog/include/plog include/
 
 src/libdatachannel-0.23.1/build/libdatachannel.a: src/libdatachannel-0.23.1/build/Makefile
 	cd src/libdatachannel-0.23.1/build; cmake --build .
@@ -60,23 +63,16 @@ src/sqlite-autoconf-3500300/configure: src/sqlite-autoconf-3500300.tar.gz
 	cd src; tar jxvf sqlite-autoconf-3500300.tar.gz
 	@touch $@
 
-lib/libspdlog.a: src/spdlog-1.15.3/build/libspdlog.a
-	cd src/spdlog-1.15.3; cmake --install build --prefix $(InstallDir)
+include/sqlite_orm: src/sqlite_orm-1.9.1/include/sqlite_orm
+	cp -r src/sqlite_orm-1.9.1/include/sqlite_orm include/
 
-src/spdlog-1.15.3/build/libspdlog.a: src/spdlog-1.15.3/build/Makefile
-	cd src/spdlog-1.15.3; cmake --build build
-
-src/spdlog-1.15.3/build/Makefile: src/spdlog-1.15.3/CMakeLists.txt
-	cd src/spdlog-1.15.3; cmake -B build
-	@touch $@
-
-src/spdlog-1.15.3/CMakeLists.txt: src/spdlog-1.15.3.tar.gz
-	cd src; tar zxvf spdlog-1.15.3.tar.gz
-	@touch $@
+src/sqlite_orm-1.9.1/include/sqlite_orm: src/sqlite_orm-1.9.1.tar.gz
+	cd src; tar zxvf sqlite_orm-1.9.1.tar.gz
+	@touch src/sqlite_orm-1.9.1/include/sqlite_orm
 
 clean:
 	rm -rf bin include lib share
 
 distclean:
-	rm -rf bin include lib share src/libdatachannel-0.23.1 src/curl-8.15.0 src/spdlog-1.15.3 src/sqlite-autoconf-3500300
+	rm -rf bin include lib share src/libdatachannel-0.23.1 src/curl-8.15.0 src/spdlog-1.15.3 src/sqlite-autoconf-3500300 src/sqlite_orm-1.9.1
 

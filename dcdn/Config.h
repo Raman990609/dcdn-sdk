@@ -5,24 +5,37 @@
 #include <vector>
 #include <mutex>
 #include <unordered_map>
-#include <sqlite3.h>
-#include "common/Config.h"
-#include "common/Logger.h"
+#include "common/Common.h"
 
 
 NS_BEGIN(dcdn)
 
+struct ConfigItem
+{
+    uint64_t id;
+    std::string key;
+    std::string val;
+};
+
+class StorageRef;
 class Config
 {
 public:
     Config();
-    void LoadFromDB(sqlite3* db);
-    int SaveToDB(sqlite3* db);
+    int CreateTable(const std::string& workDir);
+    int LoadFromDB();
+    int SaveToDB();
 
     std::string ApiRootUrl() const
     {
         std::unique_lock<std::mutex> lck(mMtx);
         auto val = mApiRootUrl;
+        return val;
+    }
+    std::string WebSktUrl() const
+    {
+        std::unique_lock<std::mutex> lck(mMtx);
+        auto val = mWebSktUrl;
         return val;
     }
     std::string PeerId() const
@@ -66,19 +79,34 @@ public:
         unsigned val = mWebRtcGatherPeriod;
         return val;
     }
-public:
-    static int CreateTable(sqlite3* db);
+    unsigned WebSktConnectTimeout() const 
+    {
+        std::unique_lock<std::mutex> lck(mMtx);
+        unsigned val = mWebSktConnectTimeout;
+        return val;
+    }
+    bool WebSktDisableTlsVerification() const
+    {
+        std::unique_lock<std::mutex> lck(mMtx);
+        bool val = mWebSktDisableTlsVerification;
+        return val;
+    }
 private:
-    static int loadConfigCallback(void* , int argc, char** argv, char** colName);
+    std::shared_ptr<StorageRef> getDB();
 private:
     mutable std::mutex mMtx;
+    std::string mDBFile;
 
     std::string mApiRootUrl;
+    std::string mWebSktUrl;
     std::string mPeerId;
     std::string mToken;
     std::vector<std::string> mStunServers;
 
     unsigned mWebRtcGatherPeriod = 60; //seconds
+
+    unsigned mWebSktConnectTimeout = 60; //seconds
+    bool mWebSktDisableTlsVerification = true;
 
     std::unordered_map<std::string, std::string> mKv;
 };
