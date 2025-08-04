@@ -3,7 +3,7 @@ include ../config.mk
 INCFLAGS = -I.. -I../deps/include
 
 LIBFLAGS = \
-		   -L../deps/lib -lcurl -lspdlog -lz \
+		   -L../deps/lib -lcurl -lz \
 
 PLT ?= $(shell uname)
 ifeq ($(PLT), Darwin)
@@ -17,11 +17,15 @@ endif
 
 testTargets = \
 			  HttpClientTest \
+			  HttpDownloaderTest \
 			  Secp256k1PubKeyTest \
 
 test: $(testTargets)
 
 HttpClientTest: HttpClientTest.o
+	$(CXX) -o $@ $^ $(LIBFLAGS)
+
+HttpDownloaderTest: HttpDownloaderTest.o
 	$(CXX) -o $@ $^ $(LIBFLAGS)
 
 Secp256k1PubKeyTest: Secp256k1PubKeyTest.o

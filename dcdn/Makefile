@@ -26,6 +26,7 @@ libdcdnObjs = \
 			   FileManager.o \
 			   UploadManager.o \
 			   DownloadManager.o \
+			   DownloadTask.o \
 			   MainManager.o \
 
 
