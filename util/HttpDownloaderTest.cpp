@@ -1,3 +1,4 @@
+#include <chrono>
 #include <condition_variable>
 #include <iostream>
 #include <fstream>
@@ -38,6 +39,7 @@ public:
             logWarn << "Init fail" << std::endl;
             return;
         }
+        auto lastReportTime = std::chrono::steady_clock::now();
         mDownloader.Start();
         int i = 1;
         for (auto& url : urls) {
@@ -78,7 +80,7 @@ public:
             if (it == mTasks.end()) {
                 continue;
             }
-            logInfo << "handle task url:" << t->Option().Url;
+            logVerb << "handle task url:" << t->Option().Url;
             auto& task = it->second;
             auto offset = task.task->Read(data);
             if (!data.empty()) {
@@ -93,11 +95,23 @@ public:
             if (task.task->IsEnd()) {
                 auto st = task.task->Status();
                 if (st == HttpDownloaderTask::Completed) {
-                    logInfo << "success for url: " << task.url << " file: " << task.filename;
+                    logInfo << "success for url: " << task.url
+                        << " file: " << task.filename
+                        << " type: " << task.task->ContentType()
+                        << " length: " << task.task->ContentLength();
                 } else {
                     logWarn  << "fail for url: " << task.url << " file: " << task.filename;
                 }
                 mTasks.erase(it);
+            }
+            auto now = std::chrono::steady_clock::now();
+            if (now - lastReportTime >= std::chrono::seconds(2)) {
+                for (auto& it : mTasks) {
+                    auto t = it.first;
+                    logInfo << "task url:" << t->Option().Url
+                        << " progress:(" << t->Size() << "/" << t->ContentLength() << ")";
+                }
+                lastReportTime = now;
             }
         }
     }
@@ -123,12 +137,14 @@ private:
 int main(int argc, char* argv[])
 {
     static plog::ConsoleAppender<plog::TxtFormatter> consoleAppender;
-    plog::init<DCDN_LOGGER_ID>(plog::debug, &consoleAppender);
+    plog::Severity lvl = plog::debug;
     std::string ua;
     int follow = 0;
     std::vector<std::string> urls;
     for (int i = 1; i < argc; ++i) {
-        if (strcmp(argv[i], "--ua") == 0) {
+        if (strcmp(argv[i], "-v") == 0) {
+            lvl = plog::verbose;
+        } else if (strcmp(argv[i], "--ua") == 0) {
             if (++i < argc) {
                 ua = argv[i];
             }
@@ -142,14 +158,16 @@ int main(int argc, char* argv[])
     }
     if (urls.empty()) {
         std::cout << "Usage: " << argv[0]
+            << " [-v]"
             << " [--ua xxx]"
             << " [--follow int]"
             << " <url>..."
             << std::endl;
         std::cout << "eg:\n" << argv[0] << " "
-            << "--follow 1 --ua 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36' www.baidu.com www.qq.com www.sohu.com" << std::endl;
+            << "--follow 1 --ua 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36' https://curl.se/download/curl-8.15.0.tar.gz https://archives.boost.io/release/1.88.0/source/boost_1_88_0.tar.gz" << std::endl;
         return 1;
     }
+    plog::init<DCDN_LOGGER_ID>(lvl, &consoleAppender);
     Manager m;
     if (!ua.empty()) {
         m.Option().SetUserAgent(ua.c_str());

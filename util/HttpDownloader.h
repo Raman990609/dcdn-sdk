@@ -78,6 +78,11 @@ public:
         std::unique_lock<std::mutex> lck(mMtx);
         return mContentLength;
     }
+    size_t Size() const
+    {
+        std::unique_lock<std::mutex> lck(mMtx);
+        return mSize;
+    }
     size_t Read(std::vector<unsigned char>& data)
     {
         std::unique_lock<std::mutex> lck(mMtx);
@@ -141,6 +146,7 @@ private:
     {
         std::unique_lock<std::mutex> lck(mMtx);
         mData.insert(mData.end(), dat, dat + len);
+        mSize += len;
     }
 private:
     friend class HttpDownloader;
@@ -152,6 +158,7 @@ private:
     HttpHeaders::CurlHeaders mCurlHeaders;
     size_t mOffset = 0;
     std::vector<unsigned char> mData;
+    size_t mSize = 0;
     size_t mContentLength = 0;
     std::string mContentType;
 };
@@ -253,7 +260,7 @@ private:
         while (true) {
             int num = 0;
             int mc = curl_multi_perform(mCM, &num);
-            logDebug << "curl_multi_perform:"<<mc<< " num:"<<num;
+            logVerb  << "curl_multi_perform:"<<mc<< " num:"<<num;
             if (mc != CURLM_OK) {
                 logWarn << "unexpected curl_multi_perform error";
                 abortAll();
@@ -424,10 +431,23 @@ private:
     static size_t writeCallback(void* contents, size_t size, size_t nmemb, void* data)
     {
         auto t = static_cast<HttpDownloaderTask*>(data);
+        if (t->mSize == 0) {
+            char* ctype = nullptr;
+            if (curl_easy_getinfo(t->mCurl, CURLINFO_CONTENT_TYPE, &ctype) != CURLE_OK) {
+                ctype = nullptr;
+            }
+            curl_off_t clen = 0;
+            if (curl_easy_getinfo(t->mCurl, CURLINFO_CONTENT_LENGTH_DOWNLOAD_T, &clen) != CURLE_OK) {
+                clen = 0;
+            }
+            if (ctype || clen > 0) {
+                t->setContent((ctype ? ctype : ""), (clen > 0 ? clen : 0));
+            }
+        }
         const unsigned char* p = (const unsigned char*)contents;
         size *= nmemb;
         t->write(p, size);
-        logDebug << "task url:" << t->mOpt.Url << " write data:" << size;
+        logVerb << "task url:" << t->mOpt.Url << " write data:" << size;
         return size;
     }
 private:
