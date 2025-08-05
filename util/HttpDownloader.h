@@ -233,7 +233,11 @@ public:
     }
     void PauseTask(std::shared_ptr<HttpDownloaderTask> task)
     {
-        postEvent(EventType::CancelTask, task);
+        postEvent(EventType::PauseTask, task);
+    }
+    void ResumeTask(std::shared_ptr<HttpDownloaderTask> task)
+    {
+        postEvent(EventType::ResumeTask, task);
     }
 private:
     enum class EventType
