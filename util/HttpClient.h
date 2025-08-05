@@ -17,6 +17,10 @@ public:
     class CurlHeaders
     {
     public:
+        CurlHeaders():
+            mHeaders(nullptr)
+        {
+        }
         CurlHeaders(const std::unordered_multimap<std::string, std::string>& headers)
         {
             std::string header;
@@ -258,40 +262,30 @@ private:
     std::string mBody;
 };
 
-class HttpClient
+class HttpClientOption
 {
 public:
-    HttpClient()
+    HttpClientOption()
     {
     }
-    HttpClient(HttpClient&& oth)
+    HttpClientOption(HttpClientOption&& oth)
     {
         operator=(std::move(oth));
     }
-    HttpClient& operator=(HttpClient&& oth)
+    HttpClientOption& operator=(HttpClientOption&& oth)
     {
-        mCurl = oth.mCurl;
-        mFollowLocation = oth.mFollowLocation;
         mUserAgent = std::move(oth.mUserAgent);
+        mFollowLocation = oth.mFollowLocation;
         mConnectTimeout = oth.mConnectTimeout;
         mRequestTimeout = oth.mRequestTimeout;
         mVerifySsl = oth.mVerifySsl;
 
-        oth.mCurl = nullptr;
         oth.mFollowLocation = 0;
         oth.mConnectTimeout = 0;
         oth.mRequestTimeout = 0;
         oth.mVerifySsl = true;
-        return *this;
-    }
 
-    HttpClient(const HttpClient&) = delete;
-    HttpClient& operator=(const HttpClient&) = delete;
-    ~HttpClient()
-    {
-        if (mCurl) {
-            curl_easy_cleanup(mCurl);
-        }
+        return *this;
     }
     void SetUserAgent(const char* val)
     {
@@ -333,19 +327,11 @@ public:
     {
         return mVerifySsl;
     }
-    long Do(const HttpRequest& req, HttpResponse* resp)
+protected:
+    void fill(CURL* c)
     {
-        auto c = getCurl();
-        if (!c) {
-            return -1;
-        }
-        curl_easy_setopt(c, CURLOPT_URL, req.Url().c_str());
         if (!mUserAgent.empty()) {
             curl_easy_setopt(c, CURLOPT_USERAGENT, mUserAgent.c_str());
-        }
-        HttpHeaders::CurlHeaders headers(std::move(req.Headers().Curl()));
-        if (headers) {
-            curl_easy_setopt(c, CURLOPT_HTTPHEADER, (curl_slist*)headers);
         }
         if (mFollowLocation > 0) {
             curl_easy_setopt(c, CURLOPT_FOLLOWLOCATION, mFollowLocation);
@@ -358,6 +344,53 @@ public:
         }
         curl_easy_setopt(c, CURLOPT_SSL_VERIFYPEER, mVerifySsl ? 1L : 0L);
         curl_easy_setopt(c, CURLOPT_SSL_VERIFYHOST, mVerifySsl ? 2L : 0L);
+    }
+protected:
+    std::string mUserAgent;
+    long mFollowLocation = 0;
+    long mConnectTimeout = 0; //milli seconds
+    long mRequestTimeout = 0; //milli seconds
+    bool mVerifySsl = true;
+};
+
+class HttpClient: public HttpClientOption
+{
+public:
+    HttpClient()
+    {
+    }
+    HttpClient(HttpClient&& oth)
+    {
+        operator=(std::move(oth));
+    }
+    HttpClient& operator=(HttpClient&& oth)
+    {
+        mCurl = oth.mCurl;
+        oth.mCurl = nullptr;
+        HttpClientOption::operator=(std::move(oth));
+        return *this;
+    }
+
+    HttpClient(const HttpClient&) = delete;
+    HttpClient& operator=(const HttpClient&) = delete;
+    ~HttpClient()
+    {
+        if (mCurl) {
+            curl_easy_cleanup(mCurl);
+        }
+    }
+    long Do(const HttpRequest& req, HttpResponse* resp)
+    {
+        auto c = getCurl();
+        if (!c) {
+            return -1;
+        }
+        curl_easy_setopt(c, CURLOPT_URL, req.Url().c_str());
+        fill(c);
+        HttpHeaders::CurlHeaders headers(std::move(req.Headers().Curl()));
+        if (headers) {
+            curl_easy_setopt(c, CURLOPT_HTTPHEADER, (curl_slist*)headers);
+        }
         if (req.Method() == HttpRequest::Post) {
             curl_easy_setopt(c, CURLOPT_POST, 1L);
             curl_easy_setopt(c, CURLOPT_POSTFIELDS, req.Body().data());
@@ -446,11 +479,6 @@ private:
     }
 private:
     CURL* mCurl = nullptr;
-    std::string mUserAgent;
-    long mFollowLocation = 0;
-    long mConnectTimeout = 0; //milli seconds
-    long mRequestTimeout = 0; //milli seconds
-    bool mVerifySsl = true;
 };
 
 NS_END
