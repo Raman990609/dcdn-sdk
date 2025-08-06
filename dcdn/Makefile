@@ -28,13 +28,18 @@ libdcdnObjs = \
 			   DownloadManager.o \
 			   DownloadTask.o \
 			   MainManager.o \
+			   dcdn.o \
 
 
 testTargets = \
 			  MainTest \
+			  dcdnTest \
 
 MainTestObjs = \
 			   MainManagerTest.o \
+
+dcdnTestObjs = \
+			   dcdnTest.o
 
 all: $(libTargets)
 	@echo Done
@@ -42,15 +47,20 @@ all: $(libTargets)
 libdcdn.a: $(libdcdnObjs)
 	ar rcs $@ $^
 
-
 test: $(testTargets)
 	@echo Done
 
 MainTest: $(MainTestObjs) libdcdn.a
 	$(CXX) -o $@ $^ $(LIBFLAGS)
 
+dcdnTest: $(dcdnTestObjs) libdcdn.a
+	$(CXX) -o $@ $^ $(LIBFLAGS)
+
 %.o : %.cpp
 	$(CXX) -c $(INCFLAGS) $^
+
+%.o : %.c
+	$(CC) -c $(INCFLAGS) $^
 
 clean:
 	rm -rf $(libTargets) $(testTargets) *.o
