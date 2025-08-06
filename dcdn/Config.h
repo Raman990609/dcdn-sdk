@@ -1,12 +1,12 @@
 #ifndef _DCDN_SDK_CONFIG_H_
 #define _DCDN_SDK_CONFIG_H_
 
-#include <string>
-#include <vector>
 #include <mutex>
+#include <string>
 #include <unordered_map>
-#include "common/Common.h"
+#include <vector>
 
+#include "common/Common.h"
 
 NS_BEGIN(dcdn)
 
@@ -79,7 +79,7 @@ public:
         unsigned val = mWebRtcGatherPeriod;
         return val;
     }
-    unsigned WebSktConnectTimeout() const 
+    unsigned WebSktConnectTimeout() const
     {
         std::unique_lock<std::mutex> lck(mMtx);
         unsigned val = mWebSktConnectTimeout;
@@ -91,8 +91,10 @@ public:
         bool val = mWebSktDisableTlsVerification;
         return val;
     }
+
 private:
     std::shared_ptr<StorageRef> getDB();
+
 private:
     mutable std::mutex mMtx;
     std::string mDBFile;
@@ -103,15 +105,14 @@ private:
     std::string mToken;
     std::vector<std::string> mStunServers;
 
-    unsigned mWebRtcGatherPeriod = 60; //seconds
+    unsigned mWebRtcGatherPeriod = 60; // seconds
 
-    unsigned mWebSktConnectTimeout = 60; //seconds
+    unsigned mWebSktConnectTimeout = 60; // seconds
     bool mWebSktDisableTlsVerification = true;
 
     std::unordered_map<std::string, std::string> mKv;
 };
 
 NS_END
-
 
 #endif

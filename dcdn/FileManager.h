@@ -2,9 +2,10 @@
 #define _DCDN_SDK_FILE_MANAGER_H_
 
 #include <thread>
-#include "util/HttpClient.h"
+
 #include "BaseManager.h"
 #include "EventLoop.h"
+#include "util/HttpClient.h"
 
 NS_BEGIN(dcdn)
 
@@ -27,6 +28,7 @@ class FileManager: public BaseManager, public EventLoop<FileManager>
 public:
     FileManager(MainManager* man);
     ~FileManager();
+
 private:
     void run();
 
@@ -35,11 +37,11 @@ private:
 
     void handleEvent(std::shared_ptr<Event> evt);
     void handleAddFile(std::shared_ptr<Event> evt);
+
 private:
     std::shared_ptr<StorageRef> mDB;
     util::HttpClient mClient;
 };
-
 
 NS_END
 

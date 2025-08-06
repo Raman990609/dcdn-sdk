@@ -2,10 +2,7 @@
 
 NS_BEGIN(dcdn)
 
-DownloadTask::DownloadTask(MainManager* man):
-    BaseManager(man)
-{
-}
+DownloadTask::DownloadTask(MainManager* man): BaseManager(man) {}
 
 int DownloadTask::Init(const DownloadOption& opt)
 {

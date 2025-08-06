@@ -2,25 +2,27 @@
 #define _DCDN_SDK_EVENT_H_
 
 #include <string>
+
 #include "common/Common.h"
 
 NS_BEGIN(dcdn)
 
 struct EventType
 {
-    enum Type {
+    enum Type
+    {
         None = 0,
 
-        //FileManager
+        // FileManager
         AddFile = 10000,
 
-        //UploadManager
+        // UploadManager
         UploadMsg = 20000,
 
-        //DownloadManager
+        // DownloadManager
         DeployMsg = 30000,
 
-        //WebSocketManager
+        // WebSocketManager
         AckMsg = 40000,
     };
 };
@@ -28,17 +30,13 @@ struct EventType
 class Event
 {
 public:
-    Event(int etype = EventType::None):
-        mType(etype)
-    {
-    }
-    virtual ~Event()
-    {
-    }
+    Event(int etype = EventType::None): mType(etype) {}
+    virtual ~Event() {}
     int Type() const
     {
         return mType;
     }
+
 private:
     int mType;
 };
@@ -47,11 +45,7 @@ template<class ArgType>
 class ArgEvent: public Event
 {
 public:
-    ArgEvent(int etype, ArgType&& arg):
-        Event(etype),
-        mArg(arg)
-    {
-    }
+    ArgEvent(int etype, ArgType&& arg): Event(etype), mArg(arg) {}
     ArgType& Arg()
     {
         return mArg;
@@ -60,9 +54,9 @@ public:
     {
         return mArg;
     }
+
 private:
     ArgType mArg;
-
 };
 
 struct AddFileArg
@@ -76,6 +70,5 @@ struct AddFileArg
 };
 
 NS_END
-
 
 #endif

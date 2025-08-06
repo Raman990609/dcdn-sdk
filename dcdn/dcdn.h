@@ -24,9 +24,9 @@ typedef struct _DcdnUploadDir
 
 typedef struct _DcdnUploadOption
 {
-    DcdnUploadDir* UploadDirs; //NULL means disable
+    DcdnUploadDir* UploadDirs; // NULL means disable
     unsigned UploadDirSize;
-    size_t MaxUploadSpeed; //BytesPerSecond, 0:unlimit
+    size_t MaxUploadSpeed; // BytesPerSecond, 0:unlimit
 } DcdnUploadOption;
 
 typedef struct _DcdnDeviceInfo
@@ -121,7 +121,7 @@ int DcdnGetTaskInfo(DcdnTaskInfo* info);
 
 typedef void (*DcdnReadTaskDataHandle)(size_t offset, const unsigned char* dat, size_t len, void* userData);
 
-//only for stream task
+// only for stream task
 int DcdnReadTaskData(size_t taskId, DcdnReadTaskDataHandle handle, void* userData);
 
 ////////////// Uplaod //////////////////////
@@ -130,7 +130,6 @@ int DcdnUpdateUploadDir(const DcdnUploadDir* d);
 int DcdnRemoveUploadDir(const char* path);
 
 int DcdnSetMaxUploadSpeed(uint64_t bytesPerSec);
-
 
 #ifdef __cplusplus
 }

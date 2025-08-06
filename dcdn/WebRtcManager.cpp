@@ -1,11 +1,12 @@
 #include "WebRtcManager.h"
-#include "MainManager.h"
+
 #include <chrono>
+
+#include "MainManager.h"
 
 NS_BEGIN(dcdn)
 
-WebRtcManager::WebRtcManager(MainManager* man):
-    BaseManager(man)
+WebRtcManager::WebRtcManager(MainManager* man): BaseManager(man)
 {
     mCert = generate_ecdsa_certificate();
     mLastGatherTime = std::chrono::steady_clock::now() - std::chrono::hours(24);
@@ -24,22 +25,20 @@ void WebRtcManager::run()
 void WebRtcManager::runGather()
 {
     switch (mGatherStatus) {
-    case GatherIdle:
-        {
+        case GatherIdle: {
             auto now = std::chrono::steady_clock::now();
             unsigned period = mMan->Cfg().WebRtcGatherPeriod();
             if (mLastGatherTime + std::chrono::seconds(period) <= now) {
                 gather();
             }
-        }
-        break;
-    case GatherRunning:
-        break;
-    case GatherDone:
-        mGatherStatus = GatherIdle;
-        mLastGatherTime = std::chrono::steady_clock::now();
-        gatherDone();
-        break;
+        } break;
+        case GatherRunning:
+            break;
+        case GatherDone:
+            mGatherStatus = GatherIdle;
+            mLastGatherTime = std::chrono::steady_clock::now();
+            gatherDone();
+            break;
     }
 }
 
@@ -71,14 +70,13 @@ void WebRtcManager::gather()
                 mGatherStatus = GatherDone;
             }
         });
-        auto dc = pc->createDataChannel("detect");//start gathering
+        auto dc = pc->createDataChannel("detect"); // start gathering
         mPc = pc;
     } catch (std::exception& excp) {
         logWarn << "webrtc gather excpetion: " << excp.what();
     } catch (...) {
         logWarn << "webrtc gather unknown excpetion";
     }
-
 }
 
 void WebRtcManager::gatherDone()
@@ -88,7 +86,8 @@ void WebRtcManager::gatherDone()
         if (dsOpt) {
             std::string sdp(dsOpt.value());
             mSdp = sdp;
-            //TODO: 解析出candidates并保存，合并已保存的candidates到sdp中，因为有时stun server无法到达从而会导致本次sdp缺失外网candidate
+            // TODO: 解析出candidates并保存，合并已保存的candidates到sdp中，因为有时stun
+            // server无法到达从而会导致本次sdp缺失外网candidate
         }
         report();
     } catch (std::exception& excp) {

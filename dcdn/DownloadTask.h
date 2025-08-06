@@ -1,8 +1,9 @@
 #ifndef _DCDN_SDK_DOWNLOAD_TASK_H_
 #define _DCDN_SDK_DOWNLOAD_TASK_H_
 
-#include "BaseManager.h"
 #include <util/HttpClient.h>
+
+#include "BaseManager.h"
 
 NS_BEGIN(dcdn)
 
@@ -18,8 +19,10 @@ class DownloadTask: public BaseManager
 public:
     DownloadTask(MainManager* man);
     int Init(const DownloadOption& opt);
+
 private:
     void run();
+
 private:
     DownloadOption mOpt;
 

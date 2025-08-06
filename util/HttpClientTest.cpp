@@ -1,5 +1,6 @@
-#include <iostream>
 #include "HttpClient.h"
+
+#include <iostream>
 
 int main(int argc, char* argv[])
 {

@@ -1,17 +1,19 @@
 #ifndef _DCDN_SDK_MAIN_MANAGER_H_
 #define _DCDN_SDK_MAIN_MANAGER_H_
 
-#include <memory>
-#include <thread>
-#include <mutex>
-#include <condition_variable>
-#include <atomic>
 #include <nlohmann/json.hpp>
 #include <sqlite3.h>
-#include "util/HttpClient.h"
-#include "Config.h"
+
+#include <atomic>
+#include <condition_variable>
+#include <memory>
+#include <mutex>
+#include <thread>
+
 #include "BaseManager.h"
+#include "Config.h"
 #include "EventLoop.h"
+#include "util/HttpClient.h"
 
 NS_BEGIN(dcdn)
 
@@ -26,10 +28,11 @@ class MainManager: public BaseManager, public EventLoop<MainManager>
 {
 public:
     using json = nlohmann::json;
+
 public:
     const MainManagerOption& Option() const
     {
-       return mOpt;
+        return mOpt;
     }
     const Config& Cfg() const
     {
@@ -37,14 +40,17 @@ public:
     }
     long ApiPost(util::HttpClient& cli, const char* uri, json& arg, util::HttpResponse* resp);
     long ApiPost(util::HttpClient& cli, const char* uri, json& arg, json& result);
+
 private:
     void run();
+
 public:
     static int Init(const MainManagerOption& opt);
     static MainManager* Singlet()
     {
         return singlet;
     }
+
 private:
     MainManager();
     MainManager(const MainManager&) = delete;
@@ -57,6 +63,7 @@ private:
 
     void handleUploadMsgEvent(std::shared_ptr<Event> evt);
     void handleDeployMsgEvent(std::shared_ptr<Event> evt);
+
 private:
     std::mutex mMtx;
     std::condition_variable mCv;

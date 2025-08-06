@@ -1,18 +1,20 @@
 #ifndef _DCDN_WEBRTC_MANAGER_H_
 #define _DCDN_WEBRTC_MANAGER_H_
 
-#include <string>
-#include <memory>
-#include <thread>
-#include <chrono>
-#include <atomic>
-#include <mutex>
-#include <condition_variable>
-#include <rtc/rtc.hpp>
 #include <nlohmann/json.hpp>
-#include "util/HttpClient.h"
-#include "Cert.h"
+#include <rtc/rtc.hpp>
+
+#include <atomic>
+#include <chrono>
+#include <condition_variable>
+#include <memory>
+#include <mutex>
+#include <string>
+#include <thread>
+
 #include "BaseManager.h"
+#include "Cert.h"
+#include "util/HttpClient.h"
 
 NS_BEGIN(dcdn)
 
@@ -20,8 +22,10 @@ class WebRtcManager: public BaseManager
 {
 public:
     using json = nlohmann::json;
+
 public:
     WebRtcManager(MainManager* man);
+
 private:
     void run();
     void runGather();
@@ -34,6 +38,7 @@ private:
         GatherRunning,
         GatherDone,
     };
+
 private:
     std::mutex mMtx;
     std::condition_variable mCv;

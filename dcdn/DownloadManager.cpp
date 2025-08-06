@@ -1,12 +1,10 @@
 #include "DownloadManager.h"
 
-#include "DownloadManager.h"
 #include "MainManager.h"
 
 NS_BEGIN(dcdn)
 
-DownloadManager::DownloadManager(MainManager* man):
-    BaseManager(man)
+DownloadManager::DownloadManager(MainManager* man): BaseManager(man)
 {
     registerHandler(EventType::DeployMsg, &DownloadManager::handleDeployMsgEvent);
 }
@@ -20,8 +18,6 @@ void DownloadManager::run()
     logInfo << "Download exit";
 }
 
-void DownloadManager::handleDeployMsgEvent(std::shared_ptr<Event> evt)
-{
-}
+void DownloadManager::handleDeployMsgEvent(std::shared_ptr<Event> evt) {}
 
 NS_END

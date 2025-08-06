@@ -1,17 +1,19 @@
 #ifndef _DCDN_UTIL_HTTP_DOWNLOADER_H_
 #define _DCDN_UTIL_HTTP_DOWNLOADER_H_
 
-#include <thread>
-#include <tuple>
+#include <curl/curl.h>
+
 #include <any>
 #include <list>
 #include <memory>
-#include <unordered_set>
-#include <unordered_map>
-#include <string>
 #include <mutex>
+#include <string>
+#include <thread>
+#include <tuple>
+#include <unordered_map>
+#include <unordered_set>
+
 #include "HttpClient.h"
-#include <curl/curl.h>
 
 NS_BEGIN(dcdn)
 NS_BEGIN(util)
@@ -42,12 +44,9 @@ public:
         Paused,
         Completed,
     };
+
 public:
-    HttpDownloaderTask(CURL* curl, const HttpDownloaderTaskOption& opt):
-        mCurl(curl),
-        mOpt(opt)
-    {
-    }
+    HttpDownloaderTask(CURL* curl, const HttpDownloaderTaskOption& opt): mCurl(curl), mOpt(opt) {}
     ~HttpDownloaderTask()
     {
         if (mCurl) {
@@ -92,6 +91,7 @@ public:
         mData.resize(0);
         return offset;
     }
+
 private:
     void notify(std::shared_ptr<HttpDownloaderTask> t)
     {
@@ -148,6 +148,7 @@ private:
         mData.insert(mData.end(), dat, dat + len);
         mSize += len;
     }
+
 private:
     friend class HttpDownloader;
     StatusType mStatus = Idle;
@@ -166,9 +167,7 @@ private:
 class HttpDownloader: public HttpClientOption
 {
 public:
-    HttpDownloader()
-    {
-    }
+    HttpDownloader() {}
     ~HttpDownloader()
     {
         if (mCM) {
@@ -188,16 +187,15 @@ public:
         }
         return ErrorCodeOk;
     }
-    void Start(bool detach=true)
+    void Start(bool detach = true)
     {
-        mThread = std::make_shared<std::thread>([&]() {
-            run();
-        });
+        mThread = std::make_shared<std::thread>([&]() { run(); });
         if (detach) {
             mThread->detach();
         }
     }
-    std::shared_ptr<std::thread> Thread() {
+    std::shared_ptr<std::thread> Thread()
+    {
         return mThread;
     }
     std::shared_ptr<HttpDownloaderTask> AddTask(const HttpDownloaderTaskOption& opt)
@@ -239,6 +237,7 @@ public:
     {
         postEvent(EventType::ResumeTask, task);
     }
+
 private:
     enum class EventType
     {
@@ -264,7 +263,7 @@ private:
         while (true) {
             int num = 0;
             int mc = curl_multi_perform(mCM, &num);
-            logVerb  << "curl_multi_perform:"<<mc<< " num:"<<num;
+            logVerb << "curl_multi_perform:" << mc << " num:" << num;
             if (mc != CURLM_OK) {
                 logWarn << "unexpected curl_multi_perform error";
                 abortAll();
@@ -280,7 +279,7 @@ private:
                     auto t = mCurlTasks[c];
                     if (res == CURLE_OK) {
                         t->setStatus(HttpDownloaderTask::Completed);
-                        logDebug<<"task url:" << t->mOpt.Url << " completed";
+                        logDebug << "task url:" << t->mOpt.Url << " completed";
                     } else {
                         t->setStatus(HttpDownloaderTask::Fail);
                     }
@@ -360,17 +359,17 @@ private:
     void handleEvent(std::shared_ptr<Event> evt)
     {
         switch (evt->first) {
-        case EventType::AddTask:
-            handleAddTaskEvent(evt);
-            break;
-        case EventType::CancelTask:
-            handleCancelTaskEvent(evt);
-            break;
-        case EventType::PauseTask:
-            handlePauseTaskEvent(evt);
-            break;
-        default:
-            break;
+            case EventType::AddTask:
+                handleAddTaskEvent(evt);
+                break;
+            case EventType::CancelTask:
+                handleCancelTaskEvent(evt);
+                break;
+            case EventType::PauseTask:
+                handlePauseTaskEvent(evt);
+                break;
+            default:
+                break;
         }
     }
     void handleAddTaskEvent(std::shared_ptr<Event> evt)
@@ -454,6 +453,7 @@ private:
         logVerb << "task url:" << t->mOpt.Url << " write data:" << size;
         return size;
     }
+
 private:
     std::shared_ptr<std::thread> mThread;
     std::mutex mMtx;

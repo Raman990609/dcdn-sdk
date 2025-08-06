@@ -8,9 +8,9 @@ class HttpDownloader: public BaseManager, public EventLoop<HttpDownloader>
 {
 public:
     HttpDownloader(MainManager* man);
+
 private:
     void run();
 };
-
 
 #endif

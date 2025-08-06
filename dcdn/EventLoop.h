@@ -1,12 +1,13 @@
 #ifndef _DCDN_SDK_EVENT_LOOP_H_
 #define _DCDN_SDK_EVENT_LOOP_H_
 
-#include <memory>
-#include <mutex>
-#include <list>
 #include <chrono>
 #include <condition_variable>
+#include <list>
+#include <memory>
+#include <mutex>
 #include <unordered_map>
+
 #include "Event.h"
 
 NS_BEGIN(dcdn)
@@ -16,21 +17,20 @@ class EventLoop
 {
 public:
     typedef void (T::*Handler)(std::shared_ptr<Event> evt);
-    EventLoop()
-    {
-    }
+    EventLoop() {}
     void PostEvent(std::shared_ptr<Event> evt)
     {
         std::unique_lock lck(mMtx);
         mEvents.push_back(evt);
         mCv.notify_all();
     }
+
 protected:
     void registerHandler(int etype, Handler hdlr)
     {
         mHandlers[etype] = hdlr;
     }
-    void  waitEvent(std::chrono::milliseconds duration)
+    void waitEvent(std::chrono::milliseconds duration)
     {
         auto evt = takeEvent(duration);
         if (evt) {
@@ -87,8 +87,8 @@ protected:
         }
         auto evts = std::move(mEvents);
         return evts;
-
     }
+
 private:
     std::mutex mMtx;
     std::condition_variable mCv;

@@ -1,4 +1,5 @@
 #include "dcdn.h"
+
 #include "MainManager.h"
 
 extern "C" {
@@ -13,18 +14,18 @@ int DcdnInit(const DcdnInitOption* opt)
 
 void DcdnUpdateNetworkInfo(const DcdnNetworkInfo* info)
 {
-    //TODO
+    // TODO
 }
 
 int DcdnCreateDownloadTask(uint64_t* taskId, const DcdnDownloadTaskOption* opt)
 {
-    //TODO
+    // TODO
     return DcdnErrorCodeErr;
 }
 
 int DcdnCreateStreamTask(uint64_t* taskId, const DcdnStreamTaskOption* opt)
 {
-    //TODO
+    // TODO
     return DcdnErrorCodeErr;
 }
 
@@ -35,57 +36,55 @@ int DcdnTaskStatusIsEnd(DcdnTaskStatus st)
 
 int DcdnCancelTask(uint64_t taskId)
 {
-    //TODO
+    // TODO
     return DcdnErrorCodeErr;
 }
 
 int DcdnPauseTask(uint64_t taskId)
 {
-    //TODO
+    // TODO
     return DcdnErrorCodeErr;
 }
 
 int DcdnResumeTask(uint64_t taskId)
 {
-    //TODO
+    // TODO
     return DcdnErrorCodeErr;
 }
 
 int DcdnRemoveTask(uint64_t taskId)
 {
-    //TODO
+    // TODO
     return DcdnErrorCodeErr;
 }
 
 int DcdnGetTaskInfo(DcdnTaskInfo* info)
 {
-    //TODO
+    // TODO
     return DcdnErrorCodeErr;
 }
 
 int DcdnReadTaskData(size_t taskId, DcdnReadTaskDataHandle handle, void* userData)
 {
-    //TODO
+    // TODO
     return DcdnErrorCodeErr;
 }
 
 int DcdnUpdateUploadDir(const DcdnUploadDir* d)
 {
-    //TODO
+    // TODO
     return DcdnErrorCodeErr;
 }
 
 int DcdnRemoveUploadDir(const char* path)
 {
-    //TODO
+    // TODO
     return DcdnErrorCodeErr;
 }
 
 int DcdnSetMaxUploadSpeed(uint64_t bytesPerSec)
 {
-    //TODO
+    // TODO
     return DcdnErrorCodeErr;
 }
-
 }
-

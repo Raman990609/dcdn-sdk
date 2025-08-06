@@ -1,11 +1,5 @@
 #include "HttpDownloader.h"
 
+HttpDownloader::HttpDownloader(MainManager* man): BaseManager(man) {}
 
-HttpDownloader::HttpDownloader(MainManager* man):
-    BaseManager(man)
-{
-}
-
-void HttpDownloader::run()
-{
-}
+void HttpDownloader::run() {}

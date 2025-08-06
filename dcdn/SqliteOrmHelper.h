@@ -5,7 +5,7 @@
 
 NS_BEGIN(dcdn)
 
-template<auto Func, typename Storage=decltype(Func(""))>
+template<auto Func, typename Storage = decltype(Func(""))>
 class StorageRefImpl
 {
 public:
@@ -13,13 +13,9 @@ public:
 
     Storage stor;
 
-    StorageRefImpl(const std::string& filename):
-        stor(Func(filename))
-    {
-    }
+    StorageRefImpl(const std::string& filename): stor(Func(filename)) {}
 };
 
 NS_END
-
 
 #endif

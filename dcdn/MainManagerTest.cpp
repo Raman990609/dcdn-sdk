@@ -1,5 +1,6 @@
-#include <iostream>
 #include "MainManager.h"
+
+#include <iostream>
 
 int main(int argc, char* argv[])
 {

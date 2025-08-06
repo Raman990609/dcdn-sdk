@@ -1,19 +1,21 @@
+#include "HttpDownloader.h"
+
+#include <plog/Appenders/ConsoleAppender.h>
+#include <plog/Initializers/RollingFileInitializer.h>
+#include <plog/Log.h>
+
 #include <chrono>
 #include <condition_variable>
-#include <iostream>
 #include <fstream>
+#include <iostream>
 #include <unordered_map>
 #include <unordered_set>
 #include <vector>
-#include <plog/Log.h>
-#include <plog/Initializers/RollingFileInitializer.h>
-#include <plog/Appenders/ConsoleAppender.h>
-#include "HttpDownloader.h"
 
+using dcdn::util::HttpClientOption;
+using dcdn::util::HttpDownloader;
 using dcdn::util::HttpDownloaderTask;
 using dcdn::util::HttpDownloaderTaskOption;
-using dcdn::util::HttpDownloader;
-using dcdn::util::HttpClientOption;
 struct Task
 {
     std::string url;
@@ -25,9 +27,7 @@ struct Task
 class Manager
 {
 public:
-    Manager()
-    {
-    }
+    Manager() {}
     HttpClientOption& Option()
     {
         return mDownloader;
@@ -95,12 +95,10 @@ public:
             if (task.task->IsEnd()) {
                 auto st = task.task->Status();
                 if (st == HttpDownloaderTask::Completed) {
-                    logInfo << "success for url: " << task.url
-                        << " file: " << task.filename
-                        << " type: " << task.task->ContentType()
-                        << " length: " << task.task->ContentLength();
+                    logInfo << "success for url: " << task.url << " file: " << task.filename
+                            << " type: " << task.task->ContentType() << " length: " << task.task->ContentLength();
                 } else {
-                    logWarn  << "fail for url: " << task.url << " file: " << task.filename;
+                    logWarn << "fail for url: " << task.url << " file: " << task.filename;
                 }
                 mTasks.erase(it);
             }
@@ -108,13 +106,14 @@ public:
             if (now - lastReportTime >= std::chrono::seconds(2)) {
                 for (auto& it : mTasks) {
                     auto t = it.first;
-                    logInfo << "task url:" << t->Option().Url
-                        << " progress:(" << t->Size() << "/" << t->ContentLength() << ")";
+                    logInfo << "task url:" << t->Option().Url << " progress:(" << t->Size() << "/" << t->ContentLength()
+                            << ")";
                 }
                 lastReportTime = now;
             }
         }
     }
+
 private:
     static void notifyCallback(std::shared_ptr<HttpDownloaderTask> task, void* r)
     {
@@ -126,6 +125,7 @@ private:
         mTaskEvents.insert(task);
         mCv.notify_one();
     }
+
 private:
     std::mutex mMtx;
     std::condition_variable mCv;
@@ -157,14 +157,15 @@ int main(int argc, char* argv[])
         }
     }
     if (urls.empty()) {
-        std::cout << "Usage: " << argv[0]
-            << " [-v]"
-            << " [--ua xxx]"
-            << " [--follow int]"
-            << " <url>..."
+        std::cout << "Usage: " << argv[0] << " [-v]"
+                  << " [--ua xxx]"
+                  << " [--follow int]"
+                  << " <url>..." << std::endl;
+        std::cout
+            << "eg:\n"
+            << argv[0] << " "
+            << "--follow 1 --ua 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36' https://curl.se/download/curl-8.15.0.tar.gz https://archives.boost.io/release/1.88.0/source/boost_1_88_0.tar.gz"
             << std::endl;
-        std::cout << "eg:\n" << argv[0] << " "
-            << "--follow 1 --ua 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36' https://curl.se/download/curl-8.15.0.tar.gz https://archives.boost.io/release/1.88.0/source/boost_1_88_0.tar.gz" << std::endl;
         return 1;
     }
     plog::init<DCDN_LOGGER_ID>(lvl, &consoleAppender);

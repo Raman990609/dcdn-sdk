@@ -1,8 +1,10 @@
-#include <cstdlib>
-#include <chrono>
-#include <iostream>
-#include "MainManager.h"
 #include "WebSocketManager.h"
+
+#include <chrono>
+#include <cstdlib>
+#include <iostream>
+
+#include "MainManager.h"
 
 using namespace std::chrono_literals;
 using json = nlohmann::json;
@@ -11,7 +13,8 @@ NS_BEGIN(dcdn)
 
 struct WebSktCmdType
 {
-    enum Type {
+    enum Type
+    {
         None = 0,
         Ping = 1,
         Pong = 2,
@@ -28,8 +31,7 @@ struct WebSktCmdType
     };
 };
 
-WebSocketManager::WebSocketManager(MainManager* man):
-    BaseManager(man)
+WebSocketManager::WebSocketManager(MainManager* man): BaseManager(man)
 {
     registerHandler(EventType::AckMsg, &WebSocketManager::handleAckMsgEvent);
 }
@@ -40,33 +42,31 @@ void WebSocketManager::run()
     auto connectTime = std::chrono::steady_clock::now();
     while (true) {
         switch (mStatus) {
-        case Idle:
-            connectTime = std::chrono::steady_clock::now();
-            connect();
-            break;
-        case Connecting:
-            if (std::chrono::steady_clock::now() - connectTime >=
-                std::chrono::seconds(mMan->Cfg().WebSktConnectTimeout())) {
-                mStatus = Closed; //timeout
-            } else {
-                std::this_thread::sleep_for(std::chrono::seconds(1));
-            }
-            break;
-        case Connected:
-            if (!mWebSkt || !mWebSkt->isOpen()) {
-                mStatus = Closed;
-            } else {
-                waitEvent(std::chrono::milliseconds(1000));
-            }
-            break;
-        case Closed:
-            {
+            case Idle:
+                connectTime = std::chrono::steady_clock::now();
+                connect();
+                break;
+            case Connecting:
+                if (std::chrono::steady_clock::now() - connectTime >=
+                    std::chrono::seconds(mMan->Cfg().WebSktConnectTimeout())) {
+                    mStatus = Closed; // timeout
+                } else {
+                    std::this_thread::sleep_for(std::chrono::seconds(1));
+                }
+                break;
+            case Connected:
+                if (!mWebSkt || !mWebSkt->isOpen()) {
+                    mStatus = Closed;
+                } else {
+                    waitEvent(std::chrono::milliseconds(1000));
+                }
+                break;
+            case Closed: {
                 mWebSkt = nullptr;
                 mStatus = Idle;
                 int secs = rand() % 30 + 1;
                 std::this_thread::sleep_for(std::chrono::seconds(secs));
-            }
-            break;
+            } break;
         }
     }
     logInfo << "WebSocket exit";
@@ -90,9 +90,7 @@ void WebSocketManager::connect()
             logInfo << "websocket closed";
             mStatus = Closed;
         });
-        ws->onMessage([&](std::variant<rtc::binary, std::string> message) {
-            handleRecvMsg(message);
-        });
+        ws->onMessage([&](std::variant<rtc::binary, std::string> message) { handleRecvMsg(message); });
         mStatus = Connecting;
         mWebSkt = ws;
         std::string url = mMan->Cfg().WebSktUrl();
@@ -119,14 +117,14 @@ void WebSocketManager::handleRecvMsg(std::variant<rtc::binary, std::string>& mes
         int msgType = msg["type"];
         int etype = EventType::None;
         switch (msgType) {
-        case WebSktCmdType::PushConnMeta:
-            etype = EventType::UploadMsg;
-            break;
-        case WebSktCmdType::DeployFile:
-            etype = EventType::DeployMsg;
-            break;
-        default:
-            break;
+            case WebSktCmdType::PushConnMeta:
+                etype = EventType::UploadMsg;
+                break;
+            case WebSktCmdType::DeployFile:
+                etype = EventType::DeployMsg;
+                break;
+            default:
+                break;
         }
         if (etype != EventType::None) {
             auto evt = std::make_shared<ArgEvent<json>>(etype, std::move(msg["payload"]));

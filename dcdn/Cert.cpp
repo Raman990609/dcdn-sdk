@@ -1,17 +1,20 @@
-#include <stdexcept>
-#include <openssl/ec.h>        // EC_KEY、EC 参数、椭圆曲线生成
-#include <openssl/evp.h>       // EVP_PKEY，高层加密密钥封装
-#include <openssl/x509.h>      // X509 证书相关操作
-#include <openssl/pem.h>       // PEM 编码读写
-#include <openssl/bio.h>       // BIO 内存流
-#include <openssl/err.h>       // 错误处理（可选）
 #include "Cert.h"
 
-// RAII helpers
-//template<typename T>
-//using openssl_ptr = std::unique_ptr<T, decltype(&::ASN1_ITEM_free)>;
+#include <openssl/bio.h> // BIO 内存流
+#include <openssl/ec.h> // EC_KEY、EC 参数、椭圆曲线生成
+#include <openssl/err.h> // 错误处理（可选）
+#include <openssl/evp.h> // EVP_PKEY，高层加密密钥封装
+#include <openssl/pem.h> // PEM 编码读写
+#include <openssl/x509.h> // X509 证书相关操作
 
-CertificatePair generate_ecdsa_certificate() {
+#include <stdexcept>
+
+// RAII helpers
+// template<typename T>
+// using openssl_ptr = std::unique_ptr<T, decltype(&::ASN1_ITEM_free)>;
+
+CertificatePair generate_ecdsa_certificate()
+{
     CertificatePair result;
 
     // 1. Generate EC key (P-256)
@@ -36,8 +39,7 @@ CertificatePair generate_ecdsa_certificate() {
     X509_set_pubkey(cert, pkey);
 
     X509_NAME* name = X509_get_subject_name(cert);
-    X509_NAME_add_entry_by_txt(name, "CN", MBSTRING_ASC,
-                               (const unsigned char*)"webrtc.generated", -1, -1, 0);
+    X509_NAME_add_entry_by_txt(name, "CN", MBSTRING_ASC, (const unsigned char*)"webrtc.generated", -1, -1, 0);
     X509_set_issuer_name(cert, name);
 
     if (!X509_sign(cert, pkey, EVP_sha256())) {
@@ -61,7 +63,7 @@ CertificatePair generate_ecdsa_certificate() {
 
     // Cleanup
     X509_free(cert);
-    EVP_PKEY_free(pkey);  // also frees ec_key
+    EVP_PKEY_free(pkey); // also frees ec_key
 
     return result;
 }

@@ -6,10 +6,11 @@
 
 NS_BEGIN(dcdn)
 
-class UploadManager : public BaseManager, public EventLoop<UploadManager>
+class UploadManager: public BaseManager, public EventLoop<UploadManager>
 {
 public:
     UploadManager(MainManager* man);
+
 private:
     void run();
     void handleUploadMsgEvent(std::shared_ptr<Event> evt);

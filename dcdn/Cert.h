@@ -3,7 +3,8 @@
 
 #include <string>
 
-struct CertificatePair {
+struct CertificatePair
+{
     std::string certPem;
     std::string keyPem;
 };

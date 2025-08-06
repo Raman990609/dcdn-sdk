@@ -1,11 +1,14 @@
-#include <filesystem>
-#include <plog/Initializers/RollingFileInitializer.h>
 #include "MainManager.h"
-#include "WebSocketManager.h"
-#include "WebRtcManager.h"
+
+#include <plog/Initializers/RollingFileInitializer.h>
+
+#include <filesystem>
+
+#include "DownloadManager.h"
 #include "FileManager.h"
 #include "UploadManager.h"
-#include "DownloadManager.h"
+#include "WebRtcManager.h"
+#include "WebSocketManager.h"
 
 NS_BEGIN(dcdn)
 
@@ -16,7 +19,7 @@ int MainManager::Init(const MainManagerOption& opt)
     std::filesystem::path logFile(opt.WorkDir);
     logFile.append("dcdn.log");
     plog::init<DCDN_LOGGER_ID>(plog::debug, logFile.c_str());
-    logInfo<< "MainManager init";
+    logInfo << "MainManager init";
     rtc::InitLogger(rtc::LogLevel::Debug);
     MainManager* n = nullptr;
     MainManager* m = new MainManager();
@@ -27,8 +30,7 @@ int MainManager::Init(const MainManagerOption& opt)
     return m->init(opt);
 }
 
-MainManager::MainManager():
-    BaseManager(this)
+MainManager::MainManager(): BaseManager(this)
 {
     mWebSkt = std::make_shared<WebSocketManager>(this);
     mWebRtc = std::make_shared<WebRtcManager>(this);
@@ -50,14 +52,12 @@ int MainManager::init(const MainManagerOption& opt)
     mCfg.LoadFromDB();
     auto peerId = mCfg.PeerId();
     if (peerId.empty()) {
-        //TODO: generate PeerId
+        // TODO: generate PeerId
     }
     return ErrorCodeOk;
 }
 
-MainManager::~MainManager()
-{
-}
+MainManager::~MainManager() {}
 
 long MainManager::ApiPost(util::HttpClient& cli, const char* uri, json& arg, util::HttpResponse* resp)
 {

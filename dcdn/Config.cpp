@@ -1,6 +1,9 @@
-#include <filesystem>
-#include <sqlite_orm/sqlite_orm.h>
 #include "Config.h"
+
+#include <sqlite_orm/sqlite_orm.h>
+
+#include <filesystem>
+
 #include "SqliteOrmHelper.h"
 
 NS_BEGIN(dcdn)
@@ -8,12 +11,13 @@ NS_BEGIN(dcdn)
 auto createConfigStorage(const std::string& filename)
 {
     using namespace sqlite_orm;
-    return make_storage(filename,
-            make_table("configs",
-                make_column("id", &ConfigItem::id, primary_key().autoincrement()),
-                make_column("key", &ConfigItem::key, unique()),
-                make_column("val", &ConfigItem::val)
-                ));
+    return make_storage(
+        filename,
+        make_table(
+            "configs",
+            make_column("id", &ConfigItem::id, primary_key().autoincrement()),
+            make_column("key", &ConfigItem::key, unique()),
+            make_column("val", &ConfigItem::val)));
 }
 
 class StorageRef: public StorageRefImpl<createConfigStorage>
@@ -110,7 +114,7 @@ int Config::SaveToDB()
 
         db->stor.transaction([&]() {
             for (auto& it : kvs) {
-                db->stor.replace(ConfigItem{.id=0, .key=it.first, .val=it.second});
+                db->stor.replace(ConfigItem{.id = 0, .key = it.first, .val = it.second});
             }
             return true;
         });
