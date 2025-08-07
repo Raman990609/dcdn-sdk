@@ -13,6 +13,7 @@
 #include <unordered_map>
 #include <unordered_set>
 
+#include "Downloader.h"
 #include "HttpClient.h"
 
 NS_BEGIN(dcdn)
@@ -20,52 +21,29 @@ NS_BEGIN(util)
 
 class HttpDownloaderTask;
 class HttpDownloader;
-struct HttpDownloaderTaskOption
+
+struct HttpDownloaderTaskOption: public DownloaderTaskOption
 {
     std::string Url;
     HttpHeaders Headers;
-    size_t Start = 0;
-    size_t End = 0;
-    size_t MaxBuf = 0;
-
-    void (*Notify)(std::shared_ptr<HttpDownloaderTask> task, void* recevier) = nullptr;
-    void* Receiver = nullptr;
 };
 
-class HttpDownloaderTask
+class HttpDownloaderTask: public DownloaderTask
 {
 public:
-    enum StatusType
+    HttpDownloaderTask(CURL* curl, const HttpDownloaderTaskOption& opt): mCurl(curl), mOpt(opt)
     {
-        Cancelled = -2,
-        Fail = -1,
-        Idle = 0,
-        Running,
-        Paused,
-        Completed,
-    };
-
-public:
-    HttpDownloaderTask(CURL* curl, const HttpDownloaderTaskOption& opt): mCurl(curl), mOpt(opt) {}
+        mOffset = opt.Start;
+    }
     ~HttpDownloaderTask()
     {
         if (mCurl) {
             curl_easy_cleanup(mCurl);
         }
     }
-    StatusType Status() const
+    const HttpDownloaderTaskOption* Option() const
     {
-        std::unique_lock<std::mutex> lck(mMtx);
-        return mStatus;
-    }
-    const HttpDownloaderTaskOption& Option() const
-    {
-        return mOpt;
-    }
-    bool IsEnd() const
-    {
-        auto st = Status();
-        return st < Idle || st >= Completed;
+        return &mOpt;
     }
     const std::string& ContentType() const
     {
@@ -77,94 +55,41 @@ public:
         std::unique_lock<std::mutex> lck(mMtx);
         return mContentLength;
     }
-    size_t Size() const
-    {
-        std::unique_lock<std::mutex> lck(mMtx);
-        return mSize;
-    }
-    size_t Read(std::vector<unsigned char>& data)
-    {
-        std::unique_lock<std::mutex> lck(mMtx);
-        size_t offset = mOffset;
-        mOffset += mData.size();
-        data.swap(mData);
-        mData.resize(0);
-        return offset;
-    }
 
 private:
-    void notify(std::shared_ptr<HttpDownloaderTask> t)
-    {
-        if (mOpt.Notify) {
-            mOpt.Notify(t, mOpt.Receiver);
-        }
-    }
-    void setStatus(StatusType st)
-    {
-        std::unique_lock<std::mutex> lck(mMtx);
-        mStatus = st;
-    }
-    bool cancel()
-    {
-        std::unique_lock<std::mutex> lck(mMtx);
-        if (mStatus == Idle || mStatus == Running) {
-            mStatus = Cancelled;
-            return true;
-        }
-        return false;
-    }
-    bool pause()
-    {
-        std::unique_lock<std::mutex> lck(mMtx);
-        if (mStatus == Idle || mStatus == Running) {
-            mStatus = Paused;
-            return true;
-        }
-        return false;
-    }
-    bool resume()
-    {
-        std::unique_lock<std::mutex> lck(mMtx);
-        if (mStatus == Paused) {
-            mStatus = Running;
-            return true;
-        }
-        return false;
-    }
     void setContent(const std::string& tp, size_t length)
     {
         std::unique_lock<std::mutex> lck(mMtx);
         mContentType = tp;
         mContentLength = length;
     }
-    bool outOfBuf() const
-    {
-        std::unique_lock<std::mutex> lck(mMtx);
-        return mOpt.MaxBuf > 0 && mData.size() > mOpt.MaxBuf;
-    }
     void write(const unsigned char* dat, size_t len)
     {
-        std::unique_lock<std::mutex> lck(mMtx);
-        mData.insert(mData.end(), dat, dat + len);
-        mSize += len;
+        auto buf = std::make_shared<Buffer>();
+        buf->Set(mOffset, dat, dat + len);
+        mOffset += len;
+        append(buf);
     }
 
 private:
+    typedef DownloaderTaskContainerBuffer<std::vector<unsigned char>> Buffer;
     friend class HttpDownloader;
-    StatusType mStatus = Idle;
-    mutable std::mutex mMtx;
     CURL* mCurl = nullptr;
     bool mCurlAdded = false;
     HttpDownloaderTaskOption mOpt;
     HttpHeaders::CurlHeaders mCurlHeaders;
+    std::shared_ptr<DownloaderTaskBuffer> mDataHead;
+    std::shared_ptr<DownloaderTaskBuffer> mDataTail;
     size_t mOffset = 0;
-    std::vector<unsigned char> mData;
-    size_t mSize = 0;
     size_t mContentLength = 0;
     std::string mContentType;
 };
 
-class HttpDownloader: public HttpClientOption
+struct HttpDownloaderOption: DownloaderOption
+{
+};
+
+class HttpDownloader: public HttpClientOption, public BaseDownloader
 {
 public:
     HttpDownloader() {}
@@ -179,7 +104,7 @@ public:
     HttpDownloader(HttpDownloader&& oth) = delete;
     HttpDownloader& operator=(const HttpDownloader& oth) = delete;
     HttpDownloader& operator=(HttpDownloader&& oth) = delete;
-    int Init()
+    int Init(const DownloaderOption* opt)
     {
         mCM = curl_multi_init();
         if (!mCM) {
@@ -187,37 +112,30 @@ public:
         }
         return ErrorCodeOk;
     }
-    void Start(bool detach = true)
+    std::shared_ptr<DownloaderTask> AddTask(const DownloaderTaskOption* bopt)
     {
-        mThread = std::make_shared<std::thread>([&]() { run(); });
-        if (detach) {
-            mThread->detach();
+        auto opt = dynamic_cast<const HttpDownloaderTaskOption*>(bopt);
+        if (!opt) {
+            return nullptr;
         }
-    }
-    std::shared_ptr<std::thread> Thread()
-    {
-        return mThread;
-    }
-    std::shared_ptr<HttpDownloaderTask> AddTask(const HttpDownloaderTaskOption& opt)
-    {
-        logDebug << "AddTask url:" << opt.Url;
+        logDebug << "AddTask url:" << opt->Url;
         auto c = curl_easy_init();
         if (!c) {
             return nullptr;
         }
-        auto t = std::make_shared<HttpDownloaderTask>(c, opt);
-        curl_easy_setopt(c, CURLOPT_URL, opt.Url.c_str());
+        auto t = std::make_shared<HttpDownloaderTask>(c, *opt);
+        curl_easy_setopt(c, CURLOPT_URL, opt->Url.c_str());
         fill(c);
-        if (!t->Option().Headers.Empty()) {
-            t->mCurlHeaders = t->Option().Headers.Curl();
+        if (!t->Option()->Headers.Empty()) {
+            t->mCurlHeaders = t->Option()->Headers.Curl();
             curl_easy_setopt(c, CURLOPT_HTTPHEADER, (curl_slist*)(t->mCurlHeaders));
         }
         curl_easy_setopt(c, CURLOPT_WRITEFUNCTION, writeCallback);
         curl_easy_setopt(c, CURLOPT_WRITEDATA, t.get());
-        if (opt.Start > 0) {
-            std::string range = std::to_string(opt.Start) + "-";
-            if (opt.End >= opt.Start) {
-                range += std::to_string(opt.End);
+        if (opt->Start > 0) {
+            std::string range = std::to_string(opt->Start) + "-";
+            if (opt->End >= opt->Start) {
+                range += std::to_string(opt->End);
                 curl_easy_setopt(c, CURLOPT_RANGE, range.c_str());
             }
         }
@@ -225,34 +143,24 @@ public:
         postEvent(EventType::AddTask, t);
         return t;
     }
-    void CancelTask(std::shared_ptr<HttpDownloaderTask> task)
+    void CancelTask(std::shared_ptr<DownloaderTask> task)
     {
         postEvent(EventType::CancelTask, task);
     }
-    void PauseTask(std::shared_ptr<HttpDownloaderTask> task)
+    void PauseTask(std::shared_ptr<DownloaderTask> task)
     {
         postEvent(EventType::PauseTask, task);
     }
-    void ResumeTask(std::shared_ptr<HttpDownloaderTask> task)
+    void ResumeTask(std::shared_ptr<DownloaderTask> task)
     {
         postEvent(EventType::ResumeTask, task);
     }
 
 private:
-    enum class EventType
-    {
-        AddTask,
-        CancelTask,
-        PauseTask,
-        ResumeTask,
-    };
-    typedef std::pair<EventType, std::any> Event;
     template<class T>
     void postEvent(EventType tp, const T& arg)
     {
-        std::unique_lock<std::mutex> lck(mMtx);
-        auto e = std::make_shared<Event>(tp, arg);
-        mEvts.push_back(e);
+        BaseDownloader::postEvent(tp, arg);
         curl_multi_wakeup(mCM);
     }
 
@@ -289,7 +197,7 @@ private:
             for (auto it : mTasks) {
                 auto t = it.first;
                 bool notify = false;
-                if (!t->mData.empty() || t->IsEnd()) {
+                if (t->HasData() || t->IsEnd()) {
                     notify = true;
                 }
                 if (t->outOfBuf()) {
@@ -434,7 +342,7 @@ private:
     static size_t writeCallback(void* contents, size_t size, size_t nmemb, void* data)
     {
         auto t = static_cast<HttpDownloaderTask*>(data);
-        if (t->mSize == 0) {
+        if (t->Size() == 0) {
             char* ctype = nullptr;
             if (curl_easy_getinfo(t->mCurl, CURLINFO_CONTENT_TYPE, &ctype) != CURLE_OK) {
                 ctype = nullptr;
@@ -455,10 +363,6 @@ private:
     }
 
 private:
-    std::shared_ptr<std::thread> mThread;
-    std::mutex mMtx;
-    std::list<std::shared_ptr<Event>> mEvts;
-
     CURLM* mCM;
     std::unordered_map<HttpDownloaderTask*, std::shared_ptr<HttpDownloaderTask>> mTasks;
     std::unordered_map<CURL*, std::shared_ptr<HttpDownloaderTask>> mCurlTasks;
