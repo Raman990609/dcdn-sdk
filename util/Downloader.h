@@ -69,7 +69,11 @@ public:
         mOffset = offset;
         mData.assign(first, last);
     }
-
+    void Set(size_t offset, T&& dat)
+    {
+        mOffset = offset;
+        mData = std::move(dat);
+    }
 private:
     size_t mOffset = 0;
     T mData;
