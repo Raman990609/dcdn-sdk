@@ -82,12 +82,10 @@ public:
             if (it == mTasks.end()) {
                 continue;
             }
-            if (auto ht = dynamic_cast<HttpDownloaderTask*>(t)) {
-                logVerb << "handle task url:" << ht->Option()->Url;
-            }
             auto& task = it->second;
-            bool isEnd = task.task->IsEnd();
-            auto data = task.task->Read();
+            logVerb << "handle task url:" << task.url;
+            bool isEnd = t->IsEnd();
+            auto data = t->Read();
             while (data) {
                 task.file->write((const char*)data->Data(), data->Length());
                 data = data->Next();
@@ -123,8 +121,8 @@ public:
                     if (auto ht = dynamic_cast<HttpDownloaderTask*>(t)) {
                         len = ht->ContentLength();
                     }
-                    logInfo << "task url:" << it.second.url << " progress:(" << t->Size() << "/" << len << ")"
-                            << " speed:" << size_t(sz / elapsed) << "Bytes/s";
+                    logInfo << "task url:" << it.second.url << " progress: " << t->Size() << "/" << len << " "
+                            << " speed: " << size_t(sz / elapsed) << " Bytes/s";
                     it.second.lastReportSize = t->Size();
                 }
                 lastReportTime = now;

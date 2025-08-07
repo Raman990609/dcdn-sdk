@@ -78,8 +78,6 @@ private:
     bool mCurlAdded = false;
     HttpDownloaderTaskOption mOpt;
     HttpHeaders::CurlHeaders mCurlHeaders;
-    std::shared_ptr<DownloaderTaskBuffer> mDataHead;
-    std::shared_ptr<DownloaderTaskBuffer> mDataTail;
     size_t mOffset = 0;
     size_t mContentLength = 0;
     std::string mContentType;
@@ -304,7 +302,7 @@ private:
             if (t->cancel()) {
                 t->notify(it->second);
             }
-            mTasks.erase(it);
+            removeTask(t.get());
         }
     }
     void handlePauseTaskEvent(std::shared_ptr<Event> evt)
