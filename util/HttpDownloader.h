@@ -24,8 +24,7 @@ class HttpDownloader;
 
 struct HttpDownloaderTaskOption: public DownloaderTaskOption
 {
-    std::string Url;
-    HttpHeaders Headers;
+    std::shared_ptr<HttpRequest> Request;
 };
 
 class HttpDownloaderTask: public DownloaderTask
@@ -45,6 +44,10 @@ public:
     {
         return &mOpt;
     }
+    long Code() const
+    {
+        return mCode;
+    }
     const std::string& ContentType() const
     {
         std::unique_lock<std::mutex> lck(mMtx);
@@ -57,6 +60,10 @@ public:
     }
 
 private:
+    void setCode(long code)
+    {
+        mCode = code;
+    }
     void setContent(const std::string& tp, size_t length)
     {
         std::unique_lock<std::mutex> lck(mMtx);
@@ -79,6 +86,7 @@ private:
     HttpDownloaderTaskOption mOpt;
     HttpHeaders::CurlHeaders mCurlHeaders;
     size_t mOffset = 0;
+    std::atomic<long> mCode = 0;
     size_t mContentLength = 0;
     std::string mContentType;
 };
@@ -110,23 +118,29 @@ public:
         }
         return ErrorCodeOk;
     }
-    std::shared_ptr<DownloaderTask> AddTask(const DownloaderTaskOption* bopt)
+    std::shared_ptr<DownloaderTask> CreateTask(const DownloaderTaskOption* bopt)
     {
         auto opt = dynamic_cast<const HttpDownloaderTaskOption*>(bopt);
         if (!opt) {
             return nullptr;
         }
-        logDebug << "AddTask url:" << opt->Url;
+        logDebug << "AddTask url:" << opt->Request->Url();
         auto c = curl_easy_init();
         if (!c) {
             return nullptr;
         }
         auto t = std::make_shared<HttpDownloaderTask>(c, *opt);
-        curl_easy_setopt(c, CURLOPT_URL, opt->Url.c_str());
+        auto req = opt->Request;
+        curl_easy_setopt(c, CURLOPT_URL, req->Url().c_str());
         fill(c);
-        if (!t->Option()->Headers.Empty()) {
-            t->mCurlHeaders = t->Option()->Headers.Curl();
+        if (!req->Headers().Empty()) {
+            t->mCurlHeaders = req->Headers().Curl();
             curl_easy_setopt(c, CURLOPT_HTTPHEADER, (curl_slist*)(t->mCurlHeaders));
+        }
+        if (req->Method() == HttpRequest::Post) {
+            curl_easy_setopt(c, CURLOPT_POST, 1L);
+            curl_easy_setopt(c, CURLOPT_POSTFIELDS, req->Body().data());
+            curl_easy_setopt(c, CURLOPT_POSTFIELDSIZE, static_cast<long>(req->Body().size()));
         }
         curl_easy_setopt(c, CURLOPT_WRITEFUNCTION, writeCallback);
         curl_easy_setopt(c, CURLOPT_WRITEDATA, t.get());
@@ -138,8 +152,11 @@ public:
             }
         }
 
-        postEvent(EventType::AddTask, t);
         return t;
+    }
+    void AddTask(std::shared_ptr<DownloaderTask> task)
+    {
+        postEvent(EventType::AddTask, task);
     }
     void CancelTask(std::shared_ptr<DownloaderTask> task)
     {
@@ -185,7 +202,7 @@ private:
                     auto t = mCurlTasks[c];
                     if (res == CURLE_OK) {
                         t->setStatus(HttpDownloaderTask::Completed);
-                        logDebug << "task url:" << t->mOpt.Url << " completed";
+                        logDebug << "task url:" << t->mOpt.Request->Url() << " completed";
                     } else {
                         t->setStatus(HttpDownloaderTask::Fail);
                     }
@@ -280,8 +297,15 @@ private:
     }
     void handleAddTaskEvent(std::shared_ptr<Event> evt)
     {
-        auto t = std::any_cast<std::shared_ptr<HttpDownloaderTask>>(evt->second);
-        logDebug << "AddTaskEvent url:" << t->mOpt.Url;
+        auto bt = std::any_cast<std::shared_ptr<DownloaderTask>>(evt->second);
+        auto t = std::dynamic_pointer_cast<HttpDownloaderTask>(bt);
+        if (!t) {
+            return;
+        }
+        logDebug << "AddTaskEvent url:" << t->mOpt.Request->Url();
+        if (mTasks.find(t.get()) != mTasks.end()) {
+            return;
+        }
         mTasks[t.get()] = t;
         mCurlTasks[t->mCurl] = t;
         int ret = curl_multi_add_handle(mCM, t->mCurl);
@@ -341,6 +365,9 @@ private:
     {
         auto t = static_cast<HttpDownloaderTask*>(data);
         if (t->Size() == 0) {
+            long code = 0;
+            curl_easy_getinfo(t->mCurl, CURLINFO_RESPONSE_CODE, &code);
+            t->setCode(code);
             char* ctype = nullptr;
             if (curl_easy_getinfo(t->mCurl, CURLINFO_CONTENT_TYPE, &ctype) != CURLE_OK) {
                 ctype = nullptr;
@@ -356,7 +383,7 @@ private:
         const unsigned char* p = (const unsigned char*)contents;
         size *= nmemb;
         t->write(p, size);
-        logVerb << "task url:" << t->mOpt.Url << " write data:" << size;
+        logVerb << "task url:" << t->mOpt.Request->Url() << " write data:" << size;
         return size;
     }
 

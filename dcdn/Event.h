@@ -13,6 +13,8 @@ struct EventType
     {
         None = 0,
 
+        AsyncApiRequest = 1000,
+
         // FileManager
         AddFile = 10000,
 

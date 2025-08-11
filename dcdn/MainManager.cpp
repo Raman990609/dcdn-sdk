@@ -4,6 +4,8 @@
 
 #include <filesystem>
 
+#include "util/HttpDownloader.h"
+
 #include "DownloadManager.h"
 #include "FileManager.h"
 #include "UploadManager.h"
@@ -32,12 +34,16 @@ int MainManager::Init(const MainManagerOption& opt)
 
 MainManager::MainManager(): BaseManager(this)
 {
+    mHttpDownloader= std::make_shared<util::HttpDownloader>();
+    mApiClient = std::make_shared<ApiClient>(mHttpDownloader.get());
+
     mWebSkt = std::make_shared<WebSocketManager>(this);
     mWebRtc = std::make_shared<WebRtcManager>(this);
     mFileMgr = std::make_shared<FileManager>(this);
     mUploadMgr = std::make_shared<UploadManager>(this);
     mDownloadMgr = std::make_shared<DownloadManager>(this);
 
+    registerHandler(EventType::AsyncApiRequest, &MainManager::handleAsyncApiRequestEvent);
     registerHandler(EventType::UploadMsg, &MainManager::handleUploadMsgEvent);
     registerHandler(EventType::DeployMsg, &MainManager::handleDeployMsgEvent);
 }
@@ -47,6 +53,12 @@ int MainManager::init(const MainManagerOption& opt)
     mOpt = opt;
     int ret = mCfg.CreateTable(opt.WorkDir);
     if (ret != ErrorCodeOk) {
+        logError << "init config fail";
+        return ret;
+    }
+    ret = mHttpDownloader->Init(nullptr);
+    if (ret != ErrorCodeOk) {
+        logError << "init HttpDownloader fail";
         return ret;
     }
     mCfg.LoadFromDB();
@@ -92,6 +104,10 @@ void MainManager::login()
         json msg;
         msg["device_id"] = mOpt.DeviceId;
         msg["apikey"] = mOpt.ApiKey;
+
+
+        mApiClient->Post("/api/v1/login", msg, this, nullptr, nullptr);
+
         json data;
         long code = ApiPost(mClient, "/api/v1/login", msg, data);
         if (code > 0) {
@@ -112,6 +128,7 @@ void MainManager::login()
 void MainManager::run()
 {
     logInfo << "MainManager running";
+    mHttpDownloader->Start();
     login();
     mWebRtc->Start();
     mWebSkt->Start();
@@ -122,6 +139,11 @@ void MainManager::run()
         waitAllEvents(std::chrono::milliseconds(1000));
     }
     logInfo << "MainManager exit";
+}
+
+void MainManager::handleAsyncApiRequestEvent(std::shared_ptr<Event> evt)
+{
+    mApiClient->HandleAsyncApiRequestEvent(evt);
 }
 
 void MainManager::handleUploadMsgEvent(std::shared_ptr<Event> evt)

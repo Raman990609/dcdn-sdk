@@ -15,6 +15,7 @@
 using dcdn::util::DownloaderTask;
 using dcdn::util::HttpClientOption;
 using dcdn::util::HttpDownloader;
+using dcdn::util::HttpRequest;
 using dcdn::util::HttpDownloaderTask;
 using dcdn::util::HttpDownloaderTaskOption;
 struct Task
@@ -46,7 +47,7 @@ public:
         int i = 1;
         for (auto& url : urls) {
             HttpDownloaderTaskOption opt;
-            opt.Url = url;
+            opt.Request = std::make_shared<HttpRequest>(url);
             opt.Notify = notifyCallback;
             opt.Receiver = this;
             Task task;
@@ -58,7 +59,7 @@ public:
             if (!*task.file) {
                 logWarn << "fail to open file: " << path << " for url: " << url;
             }
-            auto t = mDownloader.AddTask(&opt);
+            auto t = mDownloader.CreateTask(&opt);
             if (t) {
                 task.task = t;
                 mTasks[t.get()] = task;
@@ -66,6 +67,7 @@ public:
             } else {
                 logWarn << "fail to add http download task";
             }
+            mDownloader.AddTask(t);
         }
         std::vector<unsigned char> data;
         while (!mTasks.empty()) {

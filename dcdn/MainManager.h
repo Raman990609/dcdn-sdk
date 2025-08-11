@@ -14,6 +14,7 @@
 #include "Config.h"
 #include "EventLoop.h"
 #include "util/HttpClient.h"
+#include "ApiClient.h"
 
 NS_BEGIN(dcdn)
 
@@ -61,6 +62,7 @@ private:
 
     void login();
 
+    void handleAsyncApiRequestEvent(std::shared_ptr<Event> evt);
     void handleUploadMsgEvent(std::shared_ptr<Event> evt);
     void handleDeployMsgEvent(std::shared_ptr<Event> evt);
 
@@ -70,7 +72,10 @@ private:
 
     MainManagerOption mOpt;
     Config mCfg;
-    dcdn::util::HttpClient mClient;
+
+    util::HttpClient mClient;
+    std::shared_ptr<util::HttpDownloader> mHttpDownloader;
+    std::shared_ptr<ApiClient> mApiClient;
 
     std::shared_ptr<BaseManager> mWebSkt;
     std::shared_ptr<BaseManager> mWebRtc;

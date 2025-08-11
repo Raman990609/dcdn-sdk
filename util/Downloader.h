@@ -106,6 +106,11 @@ public:
         auto st = Status();
         return st < Idle || st >= Completed;
     }
+    bool IsCompleted() const
+    {
+        auto st = Status();
+        return st == Completed;
+    }
     size_t Size() const
     {
         return mSize;
@@ -214,7 +219,8 @@ public:
     {
         return mThread;
     }
-    virtual std::shared_ptr<DownloaderTask> AddTask(const DownloaderTaskOption* opt) = 0;
+    virtual std::shared_ptr<DownloaderTask> CreateTask(const DownloaderTaskOption* opt) = 0;
+    virtual void AddTask(std::shared_ptr<DownloaderTask> task) = 0;
     virtual void CancelTask(std::shared_ptr<DownloaderTask> task) = 0;
     virtual void PauseTask(std::shared_ptr<DownloaderTask> task) = 0;
     virtual void ResumeTask(std::shared_ptr<DownloaderTask> task) = 0;
